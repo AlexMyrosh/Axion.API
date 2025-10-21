@@ -1,0 +1,16 @@
+{
+  "ApiRoutes": [
+    {
+      "Path": "/api/payments/create",
+      "Method": "POST",
+      "Auth": "static_tokens",
+      "Handler": "Axion.API.Handlers.CreatePaymentHandler, Axion.API"
+    },
+    {
+      "Path": "/api/payments/refund",
+      "Method": "POST",
+      "Auth": "jwt",
+      "Handler": "Axion.API.Handlers.RefundPaymentHandler, Axion.API"
+    }
+  ]
+}
