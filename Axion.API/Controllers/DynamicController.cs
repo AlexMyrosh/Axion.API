@@ -23,7 +23,7 @@ public class DynamicController(HandlerRegistry registry, IServiceProvider servic
         
         if (!registry.TryGet(key, out var handlerType) || handlerType == null)
         {
-            return NotFound(new { error = "no_handler" });
+            return NotFound(ApiResponse.Error("404", "Handler not found", new { payment_status = "error" }));
         }
 
         var request = new ApiRequest
@@ -61,10 +61,7 @@ public class DynamicController(HandlerRegistry registry, IServiceProvider servic
         var handler = (IApiHandler?)services.GetService(handlerType) ?? ActivatorUtilities.CreateInstance(services, handlerType) as IApiHandler;
         if (handler == null)
         {
-            return StatusCode(500, new
-            {
-                error = "handler_create_failed"
-            });
+            return StatusCode(500, ApiResponse.Error("500", "Handler creation failed", new { payment_status = "error" }));
         }
 
         var response = await handler.HandleAsync(request);

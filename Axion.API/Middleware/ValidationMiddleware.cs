@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Axion.API.Config;
 using Axion.API.Helpers;
+using Axion.API.Models;
 using Axion.API.Validation;
 
 namespace Axion.API.Middleware;
@@ -51,22 +52,16 @@ public class ValidationMiddleware(RequestDelegate next)
             {
                 logger.LogWarning(ex, "Invalid JSON in request body");
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsJsonAsync(new
-                {
-                    error = "invalid_json",
-                    message = "Request body contains invalid JSON"
-                });
+                var errorResponse = ApiResponse.Error("400", "Request body contains invalid JSON", new { payment_status = "error" });
+                await context.Response.WriteAsJsonAsync(errorResponse.Data);
                 return;
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error reading request body");
                 context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                await context.Response.WriteAsJsonAsync(new
-                {
-                    error = "internal_error",
-                    message = "Error processing request"
-                });
+                var errorResponse = ApiResponse.Error("500", "Something went wrong. Please try again later.", new { payment_status = "error" });
+                await context.Response.WriteAsJsonAsync(errorResponse.Data);
                 return;
             }
 
@@ -74,16 +69,11 @@ public class ValidationMiddleware(RequestDelegate next)
             
             if (errors.Count > 0)
             {
-                logger.LogWarning("Validation failed for {Method} {Path}: {ErrorCount} errors", 
-                    method, path, errors.Count);
+                logger.LogWarning("Validation failed for {Method} {Path}: {ErrorCount} errors", method, path, errors.Count);
                 
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsJsonAsync(new
-                {
-                    error = "validation_failed",
-                    message = "Request validation failed",
-                    validation_errors = errors
-                });
+                var errorResponse = ApiResponse.Error("400", "Request validation failed", new { payment_status = "error" });
+                await context.Response.WriteAsJsonAsync(errorResponse.Data);
                 return;
             }
         }
@@ -97,12 +87,8 @@ public class ValidationMiddleware(RequestDelegate next)
                 logger.LogWarning("Validation failed for {Method} {Path}: Missing required fields", method, path);
                 
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsJsonAsync(new
-                {
-                    error = "validation_failed",
-                    message = "Request validation failed",
-                    validation_errors = errors
-                });
+                var errorResponse = ApiResponse.Error("400", "Request validation failed", new { payment_status = "error" });
+                await context.Response.WriteAsJsonAsync(errorResponse.Data);
                 return;
             }
         }

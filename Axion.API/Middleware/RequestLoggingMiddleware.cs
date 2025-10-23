@@ -7,10 +7,6 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
 {
     public async Task InvokeAsync(HttpContext context)
     {
-        var processId = Activity.Current?.Id ?? Guid.NewGuid().ToString();
-        context.Items["ProcessId"] = processId;
-        context.Response.Headers["X-Process-Id"] = processId;
-
         // Read body request
         context.Request.EnableBuffering();
         var requestBody = "";
@@ -21,8 +17,7 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
             context.Request.Body.Position = 0;
         }
 
-        logger.LogInformation("REQUEST {RequestMethod} {RequestPath} Body: {RequestBody}", 
-            context.Request.Method, context.Request.Path, FilterSensitiveData(requestBody));
+        logger.LogInformation("REQUEST {RequestMethod} {RequestPath} Body: {RequestBody}", context.Request.Method, context.Request.Path, FilterSensitiveData(requestBody));
 
         // Intercepting response
         var originalBody = context.Response.Body;
@@ -35,8 +30,7 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
         var responseBody = await new StreamReader(memStream).ReadToEndAsync();
         memStream.Position = 0;
 
-        logger.LogInformation("RESPONSE Code: {StatusCode} Body: {ResponseBody}", 
-            context.Response.StatusCode, FilterSensitiveData(responseBody));
+        logger.LogInformation("RESPONSE Code: {StatusCode} Body: {ResponseBody}", context.Response.StatusCode, FilterSensitiveData(responseBody));
 
         await memStream.CopyToAsync(originalBody);
     }
@@ -58,7 +52,12 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
         {
             using var doc = JsonDocument.Parse(input);
             var filtered = MaskSensitive(doc.RootElement);
-            return JsonSerializer.Serialize(filtered);
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+            return JsonSerializer.Serialize(filtered, options);
         }
         catch
         {

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Axion.API.Auth;
 using Axion.API.Config;
 using Axion.API.LoggerConfigurations;
@@ -18,8 +19,8 @@ public class Program
     {
         // Configure bootstrap logger
         Log.Logger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
             .MinimumLevel.Information()
-            .Enrich.WithProcessId()
             .WriteTo.Console(formatter: new ColoredConsoleFormatter())
             .CreateLogger();
 
@@ -31,9 +32,9 @@ public class Program
 
             // Add Serilog
             builder.Host.UseSerilog((_, _, configuration) => configuration
+                .Enrich.FromLogContext()
                 .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .Enrich.WithProcessId()
                 .WriteTo.Console(formatter: new ColoredConsoleFormatter()));
 
             // Config
@@ -54,11 +55,15 @@ public class Program
             builder.Services.AddSingleton<IRedisService, RedisServiceStub>();
             builder.Services.AddSingleton<ITcpClientService, TcpClientServiceStub>();
 
-            builder.Services.AddControllers().AddJsonOptions(o => { o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; });
+            builder.Services.AddControllers().AddJsonOptions(o => { 
+                o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            });
 
             var app = builder.Build();
 
             // Middleware pipeline
+            app.UseMiddleware<ProcessIdMiddleware>();
             app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseMiddleware<RequestLoggingMiddleware>();
             app.UseMiddleware<AuthMiddleware>();

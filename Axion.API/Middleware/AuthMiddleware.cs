@@ -2,6 +2,7 @@ using Axion.API.Auth;
 using Axion.API.Config;
 using Axion.API.Registry;
 using Axion.API.Helpers;
+using Axion.API.Models;
 
 namespace Axion.API.Middleware;
 
@@ -36,7 +37,8 @@ public class AuthMiddleware(RequestDelegate next)
                     {
                         logger.LogWarning("Missing or invalid JWT token format");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        await context.Response.WriteAsJsonAsync(new { error = "missing_jwt_token" });
+                        var jwtErrorResponse = ApiResponse.Error("401", "Missing JWT token", new { payment_status = "error" });
+                        await context.Response.WriteAsJsonAsync(jwtErrorResponse.Data);
                         return;
                     }
 
@@ -46,7 +48,8 @@ public class AuthMiddleware(RequestDelegate next)
                     {
                         logger.LogWarning("Invalid JWT token");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        await context.Response.WriteAsJsonAsync(new { error = "invalid_jwt_token" });
+                        var jwtInvalidResponse = ApiResponse.Error("401", "Invalid JWT token", new { payment_status = "error" });
+                        await context.Response.WriteAsJsonAsync(jwtInvalidResponse.Data);
                         return;
                     }
                 }
@@ -60,7 +63,8 @@ public class AuthMiddleware(RequestDelegate next)
                     {
                         logger.LogWarning("Missing or invalid static token format");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        await context.Response.WriteAsJsonAsync(new { error = "missing_static_token" });
+                        var staticErrorResponse = ApiResponse.Error("401", "Missing static token", new { payment_status = "error" });
+                        await context.Response.WriteAsJsonAsync(staticErrorResponse.Data);
                         return;
                     }
 
@@ -70,7 +74,8 @@ public class AuthMiddleware(RequestDelegate next)
                     {
                         logger.LogWarning("Invalid static token");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        await context.Response.WriteAsJsonAsync(new { error = "invalid_static_token" });
+                        var staticInvalidResponse = ApiResponse.Error("401", "Invalid static token", new { payment_status = "error" });
+                        await context.Response.WriteAsJsonAsync(staticInvalidResponse.Data);
                         return;
                     }
                 }
@@ -82,7 +87,8 @@ public class AuthMiddleware(RequestDelegate next)
             default:
                 logger.LogError("Unsupported auth type: {AuthType}", authType);
                 context.Response.StatusCode = StatusCodes.Status501NotImplemented;
-                await context.Response.WriteAsJsonAsync(new { error = "selected_auth_not_supported" });
+                var authErrorResponse = ApiResponse.Error("501", "Selected auth not supported", new { payment_status = "error" });
+                await context.Response.WriteAsJsonAsync(authErrorResponse.Data);
                 return;
         }
 

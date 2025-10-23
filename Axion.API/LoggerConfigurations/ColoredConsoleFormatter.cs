@@ -14,7 +14,7 @@ public class ColoredConsoleFormatter : ITextFormatter
     public void Format(LogEvent logEvent, TextWriter output)
     {
         // Timestamp
-        output.Write(logEvent.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
+        output.Write($"[{logEvent.Timestamp:yyyy-MM-dd HH:mm:ss}]");
         output.Write(" ");
 
         // Level with color
