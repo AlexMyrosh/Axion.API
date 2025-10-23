@@ -6,6 +6,7 @@ using Axion.API.Middleware;
 using Axion.API.Registry;
 using Axion.API.Services.Abstraction;
 using Axion.API.Services.Implementation;
+using Axion.API.Validation;
 using Serilog;
 using Serilog.Events;
 
@@ -41,6 +42,7 @@ public class Program
             // Services
             builder.Services.AddSingleton<HandlerRegistry>();
             builder.Services.AddSingleton<ApiConfigurator>();
+            builder.Services.AddSingleton<RequestValidator>();
 
             // Auth providers
             builder.Services.AddSingleton<IAuthProvider, JwtAuthProvider>();
@@ -60,6 +62,7 @@ public class Program
             app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseMiddleware<RequestLoggingMiddleware>();
             app.UseMiddleware<AuthMiddleware>();
+            app.UseMiddleware<ValidationMiddleware>();
 
             if (app.Environment.IsDevelopment())
             {

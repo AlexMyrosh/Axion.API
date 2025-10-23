@@ -43,7 +43,12 @@ public class DynamicController(HandlerRegistry registry, IServiceProvider servic
             request.Query[q.Key] = q.Value.ToString();
         }
         
-        if (Request.ContentLength > 0 && Request.ContentType?.Contains("application/json") == true)
+        // Check if body was already parsed by ValidationMiddleware
+        if (HttpContext.Items.TryGetValue("ParsedRequestBody", out var parsedBody) && parsedBody is JsonDocument jsonDoc)
+        {
+            request.Body = jsonDoc.RootElement;
+        }
+        else if (Request.ContentLength > 0 && Request.ContentType?.Contains("application/json") == true)
         {
             using var sr = new StreamReader(Request.Body);
             var bodyStr = await sr.ReadToEndAsync();
