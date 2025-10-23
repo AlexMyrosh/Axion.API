@@ -1,0 +1,29 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosolutionstate
+*.sln.docstates
+.DS_Store
+
+# Rider
+.idea/
+*.sln.iml
+*.DotSettings.user
+
+# VS Code
+.vscode/
+
+# Sensitive configuration files
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+appsettings.*.json
+!appsettings.Example.json
+
+# Docker
+docker-compose.override.yml
+docker-compose.yml

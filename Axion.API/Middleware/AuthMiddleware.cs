@@ -1,6 +1,7 @@
 using Axion.API.Auth;
 using Axion.API.Config;
 using Axion.API.Registry;
+using Axion.API.Helpers;
 
 namespace Axion.API.Middleware;
 
@@ -13,12 +14,11 @@ public class AuthMiddleware(RequestDelegate next)
     {
         var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
         var method = context.Request.Method.ToUpperInvariant();
-        var key = path + ":" + method;
+        var key = RouteKeyHelper.BuildRouteKey(path, method);
 
         var registry = services.GetRequiredService<HandlerRegistry>();
         if (!registry.TryGet(key, out var handlerType) || handlerType == null)
         {
-            logger.LogInformation("No handler found for {Method} {Path}", method, path);
             await next(context);
             return;
         }
@@ -26,64 +26,61 @@ public class AuthMiddleware(RequestDelegate next)
         var apiConfigurator = services.GetRequiredService<ApiConfigurator>();
         var authType = apiConfigurator.GetAuthTypeForHandler(handlerType);
         
-        logger.LogInformation("Authenticating request {Method} {Path} with AuthType {AuthType}", method, path, authType);
-        
         switch (authType?.ToLowerInvariant())
         {
             case "jwt":
                 {
                     var authHeader = context.Request.Headers["Authorization"].ToString();
-                    if (!authHeader.StartsWith(JwtTokenPrefix, StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrEmpty(authHeader) || authHeader.Length <= JwtTokenPrefix.Length || 
+                        !authHeader.StartsWith(JwtTokenPrefix, StringComparison.OrdinalIgnoreCase))
                     {
-                        logger.LogWarning("Missing JWT token for {Method} {Path}", method, path);
+                        logger.LogWarning("Missing or invalid JWT token format");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         await context.Response.WriteAsJsonAsync(new { error = "missing_jwt_token" });
                         return;
                     }
 
+                    var token = authHeader.Substring(JwtTokenPrefix.Length);
                     var jwtProvider = services.GetRequiredService<IAuthProvider>();
-                    if (!jwtProvider.Validate(authHeader.Substring(JwtTokenPrefix.Length)))
+                    if (!jwtProvider.Validate(token))
                     {
-                        logger.LogWarning("Invalid JWT token for {Method} {Path}", method, path);
+                        logger.LogWarning("Invalid JWT token");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         await context.Response.WriteAsJsonAsync(new { error = "invalid_jwt_token" });
                         return;
                     }
-                    
-                    logger.LogInformation("JWT token validated successfully for {Method} {Path}", method, path);
                 }
                 break;
 
             case "static_tokens":
                 {
                     var authHeader = context.Request.Headers["Authorization"].ToString();
-                    if (!authHeader.StartsWith(StaticTokenPrefix, StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrEmpty(authHeader) || authHeader.Length <= StaticTokenPrefix.Length || 
+                        !authHeader.StartsWith(StaticTokenPrefix, StringComparison.OrdinalIgnoreCase))
                     {
-                        logger.LogWarning("Missing static token for {Method} {Path}", method, path);
+                        logger.LogWarning("Missing or invalid static token format");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         await context.Response.WriteAsJsonAsync(new { error = "missing_static_token" });
                         return;
                     }
 
+                    var token = authHeader.Substring(StaticTokenPrefix.Length);
                     var staticProvider = services.GetRequiredService<StaticTokenAuthProvider>();
-                    if (!staticProvider.Validate(authHeader.Substring(StaticTokenPrefix.Length)))
+                    if (!staticProvider.Validate(token))
                     {
-                        logger.LogWarning("Invalid static token for {Method} {Path}", method, path);
+                        logger.LogWarning("Invalid static token");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         await context.Response.WriteAsJsonAsync(new { error = "invalid_static_token" });
                         return;
                     }
-                    
-                    logger.LogInformation("Static token validated successfully for {Method} {Path}", method, path);
                 }
                 break;
 
             case "none":
-                logger.LogInformation("No authentication required for {Method} {Path}", method, path);
                 break;
             
             default:
-                logger.LogError("Unsupported AuthType {AuthType} for {Method} {Path}", authType, method, path);
+                logger.LogError("Unsupported auth type: {AuthType}", authType);
                 context.Response.StatusCode = StatusCodes.Status501NotImplemented;
                 await context.Response.WriteAsJsonAsync(new { error = "selected_auth_not_supported" });
                 return;

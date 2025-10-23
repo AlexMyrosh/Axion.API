@@ -2,19 +2,22 @@ namespace Axion.API.Auth;
 
 public class StaticTokenAuthProvider
 {
-    private readonly Dictionary<string, string> _tokens = new();
+    private readonly HashSet<string> _tokens = new();
 
     public StaticTokenAuthProvider(IConfiguration config)
     {
         var section = config.GetSection("StaticTokens");
         foreach (var kvp in section.GetChildren())
         {
-            _tokens[kvp.Key] = kvp.Value ?? string.Empty;
+            if (!string.IsNullOrEmpty(kvp.Value))
+            {
+                _tokens.Add(kvp.Value);
+            }
         }
     }
 
     public bool Validate(string token)
     {
-        return _tokens.Values.Any(v => v == token);
+        return !string.IsNullOrEmpty(token) && _tokens.Contains(token);
     }
 }

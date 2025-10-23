@@ -21,8 +21,8 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
             context.Request.Body.Position = 0;
         }
 
-        logger.LogInformation("REQUEST {RequestMethod} {RequestPath} [{ProcessId}] => Body: {FilterSensitiveData}", 
-            context.Request.Method, context.Request.Path, processId, FilterSensitiveData(requestBody));
+        logger.LogInformation("REQUEST {RequestMethod} {RequestPath} Body: {RequestBody}", 
+            context.Request.Method, context.Request.Path, FilterSensitiveData(requestBody));
 
         // Intercepting response
         var originalBody = context.Response.Body;
@@ -35,11 +35,17 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
         var responseBody = await new StreamReader(memStream).ReadToEndAsync();
         memStream.Position = 0;
 
-        logger.LogInformation("RESPONSE [{ProcessId}] => Code: {ResponseStatusCode}, Body: {FilterSensitiveData}", 
-            processId, context.Response.StatusCode, FilterSensitiveData(responseBody));
+        logger.LogInformation("RESPONSE Code: {StatusCode} Body: {ResponseBody}", 
+            context.Response.StatusCode, FilterSensitiveData(responseBody));
 
         await memStream.CopyToAsync(originalBody);
     }
+
+    private static readonly string[] SensitiveFields = 
+    {
+        "password", "token", "card_number", "cvv", "cvc", "pin", "secret", "key", 
+        "cardnumber", "card", "authorization"
+    };
 
     private static string FilterSensitiveData(string input)
     {
@@ -65,13 +71,30 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
         var result = new Dictionary<string, object>();
         foreach (var prop in element.EnumerateObject())
         {
-            if (prop.Name.ToLower().Contains("password") || prop.Name.ToLower().Contains("token"))
+            var propertyNameLower = prop.Name.ToLower();
+            if (SensitiveFields.Any(field => propertyNameLower.Contains(field)))
             {
                 result[prop.Name] = "***";
             }
             else if (prop.Value.ValueKind == JsonValueKind.Object)
             {
                 result[prop.Name] = MaskSensitive(prop.Value);
+            }
+            else if (prop.Value.ValueKind == JsonValueKind.Array)
+            {
+                var arrayItems = new List<object>();
+                foreach (var item in prop.Value.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.Object)
+                    {
+                        arrayItems.Add(MaskSensitive(item));
+                    }
+                    else
+                    {
+                        arrayItems.Add(item.ToString());
+                    }
+                }
+                result[prop.Name] = arrayItems;
             }
             else
             {

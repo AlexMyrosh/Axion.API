@@ -1,9 +1,10 @@
+using Axion.API.Helpers;
 using Axion.API.Models;
 using Axion.API.Registry;
 
 namespace Axion.API.Config;
 
-public class ApiConfigurator(IConfiguration configuration, HandlerRegistry registry)
+public class ApiConfigurator(IConfiguration configuration, HandlerRegistry registry, ILogger<ApiConfigurator> logger)
 {
     private readonly Dictionary<Type, string> _authMap = new();
 
@@ -17,13 +18,17 @@ public class ApiConfigurator(IConfiguration configuration, HandlerRegistry regis
             var handlerType = Type.GetType(route.Handler);
             if (handlerType == null)
             {
+                logger.LogWarning("Handler type not found: {Handler}", route.Handler);
                 continue;
             }
             
-            var key = route.Path.ToLowerInvariant() + ":" + route.Method.ToUpperInvariant();
+            var key = RouteKeyHelper.BuildRouteKey(route.Path, route.Method);
             registry.Register(key, handlerType);
             
-            _authMap[handlerType] = route.Auth?.ToLowerInvariant() ?? "none";
+            _authMap[handlerType] = route.Auth.ToLowerInvariant();
+            
+            logger.LogInformation("Route registered: {Method} {Path} -> {Handler} (Auth: {Auth})", 
+                route.Method, route.Path, handlerType.Name, route.Auth);
         }
 
         return Task.CompletedTask;
