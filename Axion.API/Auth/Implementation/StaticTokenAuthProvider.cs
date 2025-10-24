@@ -1,6 +1,8 @@
-namespace Axion.API.Auth;
+using Axion.API.Auth.Abstraction;
 
-public class StaticTokenAuthProvider
+namespace Axion.API.Auth.Implementation;
+
+public class StaticTokenAuthProvider : IStaticTokenAuthProvider
 {
     private readonly HashSet<string> _tokens = new();
 

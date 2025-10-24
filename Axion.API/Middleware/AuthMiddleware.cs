@@ -1,8 +1,9 @@
-using Axion.API.Auth;
 using Axion.API.Config;
 using Axion.API.Registry;
 using Axion.API.Helpers;
 using Axion.API.Models;
+using System.Text.Json;
+using Axion.API.Auth.Abstraction;
 
 namespace Axion.API.Middleware;
 
@@ -43,10 +44,34 @@ public class AuthMiddleware(RequestDelegate next)
                     }
 
                     var token = authHeader.Substring(JwtTokenPrefix.Length);
-                    var jwtProvider = services.GetRequiredService<IAuthProvider>();
-                    if (!jwtProvider.Validate(token))
+                    
+                    // Read body to check for timestamp
+                    JsonElement? requestBody = null;
+                    if (context.Request.ContentLength > 0 && context.Request.ContentType?.Contains("application/json") == true)
                     {
-                        logger.LogWarning("Invalid JWT token");
+                        context.Request.EnableBuffering();
+                        using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
+                        var bodyStr = await reader.ReadToEndAsync();
+                        context.Request.Body.Position = 0;
+                        
+                        if (!string.IsNullOrWhiteSpace(bodyStr))
+                        {
+                            try
+                            {
+                                var jsonDoc = JsonDocument.Parse(bodyStr);
+                                requestBody = jsonDoc.RootElement;
+                            }
+                            catch (JsonException ex)
+                            {
+                                logger.LogWarning(ex, "Failed to parse request body as JSON");
+                            }
+                        }
+                    }
+                    
+                    var jwtProvider = services.GetRequiredService<IJwtAuthProvider>();
+                    if (!jwtProvider.Validate(token, requestBody))
+                    {
+                        logger.LogWarning("Invalid JWT token or body validation failed");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         var jwtInvalidResponse = ApiResponse.Error("401", "Invalid JWT token", new { payment_status = "error" });
                         await context.Response.WriteAsJsonAsync(jwtInvalidResponse.Data);
@@ -69,7 +94,7 @@ public class AuthMiddleware(RequestDelegate next)
                     }
 
                     var token = authHeader.Substring(StaticTokenPrefix.Length);
-                    var staticProvider = services.GetRequiredService<StaticTokenAuthProvider>();
+                    var staticProvider = services.GetRequiredService<IStaticTokenAuthProvider>();
                     if (!staticProvider.Validate(token))
                     {
                         logger.LogWarning("Invalid static token");

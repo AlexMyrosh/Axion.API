@@ -43,9 +43,6 @@ public class ValidationMiddleware(RequestDelegate next)
                 {
                     var jsonDoc = JsonDocument.Parse(bodyString);
                     body = jsonDoc.RootElement;
-                    
-                    // Store the parsed body in HttpContext.Items for reuse in controller
-                    context.Items["ParsedRequestBody"] = jsonDoc;
                 }
             }
             catch (JsonException ex)

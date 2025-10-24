@@ -8,4 +8,3 @@ public class ValidationError
     
     public string Code { get; set; } = string.Empty;
 }
-

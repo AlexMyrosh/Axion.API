@@ -3,7 +3,7 @@
     {
       "Path": "/api/payments/create",
       "Method": "POST",
-      "Auth": "none",
+      "Auth": "jwt",
       "Handler": "Axion.API.Handlers.CreatePaymentHandler, Axion.API",
       "RequestSchema": {
         "Fields": [
@@ -14,7 +14,7 @@
     {
       "Path": "/api/payments/refund",
       "Method": "POST",
-      "Auth": "none",
+      "Auth": "jwt",
       "Handler": "Axion.API.Handlers.RefundPaymentHandler, Axion.API",
       "RequestSchema": {
         "Fields": [

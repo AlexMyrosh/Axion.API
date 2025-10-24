@@ -1,9 +1,9 @@
 using Serilog.Events;
 using Serilog.Formatting;
 
-namespace Axion.API.LoggerConfigurations;
+namespace Axion.API.SerilogConfiguration;
 
-public class ColoredConsoleFormatter : ITextFormatter
+public class ConsoleFormatter : ITextFormatter
 {
     private const string Reset = "\x1b[0m";
     private const string Blue = "\x1b[34m";

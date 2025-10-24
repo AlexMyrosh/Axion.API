@@ -43,19 +43,11 @@ public class DynamicController(HandlerRegistry registry, IServiceProvider servic
             request.Query[q.Key] = q.Value.ToString();
         }
         
-        // Check if body was already parsed by ValidationMiddleware
-        if (HttpContext.Items.TryGetValue("ParsedRequestBody", out var parsedBody) && parsedBody is JsonDocument jsonDoc)
+        using var sr = new StreamReader(Request.Body);
+        var bodyStr = await sr.ReadToEndAsync();
+        if (!string.IsNullOrWhiteSpace(bodyStr))
         {
-            request.Body = jsonDoc.RootElement;
-        }
-        else if (Request.ContentLength > 0 && Request.ContentType?.Contains("application/json") == true)
-        {
-            using var sr = new StreamReader(Request.Body);
-            var bodyStr = await sr.ReadToEndAsync();
-            if (!string.IsNullOrWhiteSpace(bodyStr))
-            {
-                request.Body = JsonDocument.Parse(bodyStr).RootElement;
-            }
+            request.Body = JsonDocument.Parse(bodyStr).RootElement;
         }
 
         var handler = (IApiHandler?)services.GetService(handlerType) ?? ActivatorUtilities.CreateInstance(services, handlerType) as IApiHandler;

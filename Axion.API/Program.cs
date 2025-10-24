@@ -1,10 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Axion.API.Auth;
+using Axion.API.Auth.Abstraction;
+using Axion.API.Auth.Implementation;
 using Axion.API.Config;
-using Axion.API.LoggerConfigurations;
 using Axion.API.Middleware;
 using Axion.API.Registry;
+using Axion.API.SerilogConfiguration;
 using Axion.API.Services.Abstraction;
 using Axion.API.Services.Implementation;
 using Axion.API.Validation;
@@ -13,17 +14,10 @@ using Serilog.Events;
 
 namespace Axion.API;
 
-public class Program
+public abstract class Program
 {
     public static async Task Main(string[] args)
     {
-        // Configure bootstrap logger
-        Log.Logger = new LoggerConfiguration()
-            .Enrich.FromLogContext()
-            .MinimumLevel.Information()
-            .WriteTo.Console(formatter: new ColoredConsoleFormatter())
-            .CreateLogger();
-
         try
         {
             Log.Information("Starting Axion.API application");
@@ -35,7 +29,7 @@ public class Program
                 .Enrich.FromLogContext()
                 .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .WriteTo.Console(formatter: new ColoredConsoleFormatter()));
+                .WriteTo.Console(formatter: new ConsoleFormatter()));
 
             // Config
             builder.Configuration.AddJsonFile("api_routes.json", optional: false, reloadOnChange: true);
@@ -46,8 +40,8 @@ public class Program
             builder.Services.AddSingleton<RequestValidator>();
 
             // Auth providers
-            builder.Services.AddSingleton<IAuthProvider, JwtAuthProvider>();
-            builder.Services.AddSingleton<StaticTokenAuthProvider>();
+            builder.Services.AddSingleton<IJwtAuthProvider, JwtAuthProvider>();
+            builder.Services.AddSingleton<IStaticTokenAuthProvider, StaticTokenAuthProvider>();
 
             // Infrastructure placeholders
             builder.Services.AddSingleton<IKafkaProducer, KafkaProducerStub>();
@@ -63,7 +57,7 @@ public class Program
             var app = builder.Build();
 
             // Middleware pipeline
-            app.UseMiddleware<ProcessIdMiddleware>();
+            app.UseMiddleware<ProcessIdMiddleware>(); // Should be always first in the pipeline
             app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseMiddleware<RequestLoggingMiddleware>();
             app.UseMiddleware<AuthMiddleware>();

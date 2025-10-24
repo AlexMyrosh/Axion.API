@@ -6,7 +6,7 @@ public class ApiRoute
     
     public string Method { get; set; } = string.Empty;
     
-    public string Auth { get; set; } = "jwt";
+    public string Auth { get; set; } = string.Empty;
     
     public string Handler { get; set; } = string.Empty;
     

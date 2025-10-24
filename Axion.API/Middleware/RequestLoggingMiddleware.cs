@@ -35,11 +35,10 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
         await memStream.CopyToAsync(originalBody);
     }
 
-    private static readonly string[] SensitiveFields = 
-    {
-        "password", "token", "card_number", "cvv", "cvc", "pin", "secret", "key", 
-        "cardnumber", "card", "authorization"
-    };
+    private static readonly string[] SensitiveFields =
+    [
+        "password", "token", "card_number", "cardnumber", "card", "cvv", "cvc", "pin", "secret", "key", "authorization"
+    ];
 
     private static string FilterSensitiveData(string input)
     {
