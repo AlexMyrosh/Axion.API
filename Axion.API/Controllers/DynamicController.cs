@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Axion.API.Handlers;
-using Axion.API.Helpers;
+using Axion.API.Utilities;
 using Axion.API.Models;
 using Axion.API.Registry;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +19,7 @@ public class DynamicController(HandlerRegistry registry, IServiceProvider servic
     {
         var path = Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
         var method = Request.Method.ToUpperInvariant();
-        var key = RouteKeyHelper.BuildRouteKey(Request.Path.Value, Request.Method);
+        var key = RouteKeyUtility.BuildRouteKey(Request.Path.Value, Request.Method);
         
         if (!registry.TryGet(key, out var handlerType) || handlerType == null)
         {

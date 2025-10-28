@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Axion.API.Config;
-using Axion.API.Helpers;
+using Axion.API.Utilities;
 using Axion.API.Models;
 using Axion.API.Validation;
 
@@ -12,7 +12,7 @@ public class ValidationMiddleware(RequestDelegate next)
     {
         var path = context.Request.Path.Value ?? string.Empty;
         var method = context.Request.Method.ToUpperInvariant();
-        var key = RouteKeyHelper.BuildRouteKey(path, method);
+        var key = RouteKeyUtility.BuildRouteKey(path, method);
 
         var schema = apiConfigurator.GetRequestSchemaForRoute(key);
         

@@ -1,9 +1,9 @@
 using Axion.API.Config;
 using Axion.API.Registry;
-using Axion.API.Helpers;
 using Axion.API.Models;
 using System.Text.Json;
 using Axion.API.Auth.Abstraction;
+using Axion.API.Utilities;
 
 namespace Axion.API.Middleware;
 
@@ -16,7 +16,7 @@ public class AuthMiddleware(RequestDelegate next)
     {
         var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
         var method = context.Request.Method.ToUpperInvariant();
-        var key = RouteKeyHelper.BuildRouteKey(path, method);
+        var key = RouteKeyUtility.BuildRouteKey(path, method);
 
         var registry = services.GetRequiredService<HandlerRegistry>();
         if (!registry.TryGet(key, out var handlerType) || handlerType == null)

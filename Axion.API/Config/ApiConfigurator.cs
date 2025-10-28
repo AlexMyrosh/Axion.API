@@ -1,4 +1,4 @@
-using Axion.API.Helpers;
+using Axion.API.Utilities;
 using Axion.API.Models;
 using Axion.API.Registry;
 
@@ -23,7 +23,7 @@ public class ApiConfigurator(IConfiguration configuration, HandlerRegistry regis
                 continue;
             }
             
-            var key = RouteKeyHelper.BuildRouteKey(route.Path, route.Method);
+            var key = RouteKeyUtility.BuildRouteKey(route.Path, route.Method);
             registry.Register(key, handlerType);
             
             _authMap[handlerType] = route.Auth.ToLowerInvariant();

@@ -1,6 +1,6 @@
-namespace Axion.API.Helpers;
+namespace Axion.API.Utilities;
 
-public static class RouteKeyHelper
+public static class RouteKeyUtility
 {
     public static string BuildRouteKey(string? path, string? method)
     {
@@ -9,4 +9,3 @@ public static class RouteKeyHelper
         return $"{normalizedPath}:{normalizedMethod}";
     }
 }
-

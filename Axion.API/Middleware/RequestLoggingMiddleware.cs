@@ -17,7 +17,7 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
             context.Request.Body.Position = 0;
         }
 
-        logger.LogInformation("REQUEST {RequestMethod} {RequestPath} Body: {RequestBody}", context.Request.Method, context.Request.Path, FilterSensitiveData(requestBody));
+        logger.LogInformation($"REQUEST {context.Request.Method} {context.Request.Path} Body: {FilterSensitiveData(requestBody)}");
 
         // Intercepting response
         var originalBody = context.Response.Body;
@@ -30,7 +30,7 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
         var responseBody = await new StreamReader(memStream).ReadToEndAsync();
         memStream.Position = 0;
 
-        logger.LogInformation("RESPONSE Code: {StatusCode} Body: {ResponseBody}", context.Response.StatusCode, FilterSensitiveData(responseBody));
+        logger.LogInformation($"RESPONSE Code: {context.Response.StatusCode} Body: {FilterSensitiveData(responseBody)}");
 
         await memStream.CopyToAsync(originalBody);
     }
