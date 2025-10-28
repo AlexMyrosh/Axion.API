@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Axion.API.Models;
@@ -89,6 +90,9 @@ public class RequestValidator
             "card_expire_year" => ValidateCardExpireYear(fieldValue, field),
             "card_expire_month" => ValidateCardExpireMonth(fieldValue, field),
             "card_cvv" => ValidateCardCvv(fieldValue, field),
+            "number_amount" => ValidateNumberAmount(fieldValue, field),
+            "string_amount" => ValidateStringAmount(fieldValue, field),
+            "array" => ValidateArrayField(fieldValue, field),
             _ => new ValidationError
             {
                 Field = field.Name,
@@ -186,7 +190,7 @@ public class RequestValidator
         else if (fieldValue.ValueKind == JsonValueKind.String)
         {
             var strValue = fieldValue.GetString() ?? string.Empty;
-            if (!decimal.TryParse(strValue, out value))
+            if (!decimal.TryParse(strValue, CultureInfo.InvariantCulture, out value))
             {
                 return new ValidationError
                 {
@@ -250,7 +254,7 @@ public class RequestValidator
         else if (fieldValue.ValueKind == JsonValueKind.String)
         {
             var strValue = fieldValue.GetString() ?? string.Empty;
-            if (!long.TryParse(strValue, out value))
+            if (!long.TryParse(strValue, CultureInfo.InvariantCulture, out value))
             {
                 return new ValidationError
                 {
@@ -560,6 +564,134 @@ public class RequestValidator
                 Code = "invalid_card_cvv",
                 Message = $"Field '{field.Name}' must be exactly 3 digits"
             };
+        }
+
+        return null;
+    }
+
+    private ValidationError? ValidateNumberAmount(JsonElement fieldValue, RequestField field, bool shouldAcceptString = false)
+    {
+        decimal value = 0;
+        string rawValue;
+        if (fieldValue.ValueKind == JsonValueKind.Number)
+        {
+            rawValue = fieldValue.GetRawText();
+            
+            if (!fieldValue.TryGetDecimal(out value))
+            {
+                return new ValidationError
+                {
+                    Field = field.Name,
+                    Code = "invalid_type",
+                    Message = $"Field '{field.Name}' must be a valid number"
+                };
+            }
+        }
+        else if (fieldValue.ValueKind == JsonValueKind.String && shouldAcceptString)
+        {
+            rawValue = fieldValue.GetString() ?? string.Empty;
+            
+            if (!decimal.TryParse(rawValue, CultureInfo.InvariantCulture, out value))
+            {
+                return new ValidationError
+                {
+                    Field = field.Name,
+                    Code = "invalid_type",
+                    Message = $"Field '{field.Name}' must be a valid number string"
+                };
+            }
+        }
+        else
+        {
+            return new ValidationError
+            {
+                Field = field.Name,
+                Code = "invalid_type",
+                Message = shouldAcceptString
+                    ? $"Field '{field.Name}' must be a number or a string containing a number"
+                    : $"Field '{field.Name}' must be a number, not a string"
+            };
+        }
+        
+        var decimalIndex = rawValue.IndexOf('.');
+        if (decimalIndex >= 0 && decimalIndex < rawValue.Length - 1)
+        {
+            var decimalPart = rawValue.Substring(decimalIndex + 1);
+            if (decimalPart.Length > 2)
+            {
+                return new ValidationError
+                {
+                    Field = field.Name,
+                    Code = "too_many_decimal_places",
+                    Message = $"Field '{field.Name}' must have no more than 2 decimal places"
+                };
+            }
+        }
+
+        // Min validation
+        if (field.Min.HasValue && value < field.Min.Value)
+        {
+            return new ValidationError
+            {
+                Field = field.Name,
+                Code = "min_value",
+                Message = $"Field '{field.Name}' must be at least {field.Min.Value}"
+            };
+        }
+
+        // Max validation
+        if (field.Max.HasValue && value > field.Max.Value)
+        {
+            return new ValidationError
+            {
+                Field = field.Name,
+                Code = "max_value",
+                Message = $"Field '{field.Name}' must not exceed {field.Max.Value}"
+            };
+        }
+
+        return null;
+    }
+
+    private ValidationError? ValidateStringAmount(JsonElement fieldValue, RequestField field)
+    {
+        if (fieldValue.ValueKind != JsonValueKind.String)
+        {
+            return new ValidationError
+            {
+                Field = field.Name,
+                Code = "invalid_type",
+                Message = $"Field '{field.Name}' must be a string"
+            };
+        }
+        
+        return ValidateNumberAmount(fieldValue, field, true);
+    }
+
+    private ValidationError? ValidateArrayField(JsonElement fieldValue, RequestField field)
+    {
+        if (fieldValue.ValueKind != JsonValueKind.Object)
+        {
+            return new ValidationError
+            {
+                Field = field.Name,
+                Code = "invalid_type",
+                Message = $"Field '{field.Name}' must be an object"
+            };
+        }
+        
+        if (field.Fields is { Count: > 0 })
+        {
+            foreach (var nestedField in field.Fields)
+            {
+                var error = ValidateField(fieldValue, nestedField);
+                if (error != null)
+                {
+                    // Prefix the field name with the parent field name for better error context
+                    error.Field = $"{field.Name}.{error.Field}";
+                    return error;
+                }
+            }
         }
 
         return null;

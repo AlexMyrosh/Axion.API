@@ -17,4 +17,6 @@ public class RequestField
     public string? RegExp { get; set; }
     
     public List<string>? AllowedValues { get; set; }
+    
+    public List<RequestField>? Fields { get; set; }
 }
