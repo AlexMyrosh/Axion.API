@@ -135,7 +135,7 @@ public class JwtAuthProvider(IConfiguration config, ILogger<JwtAuthProvider> log
             }
         }
 
-        logger.LogDebug("JWT payload and request body match successfully");
+        logger.LogInformation("JWT payload and request body match successfully");
         return true;
     }
     

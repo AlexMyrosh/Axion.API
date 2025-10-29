@@ -11,6 +11,14 @@ public class ValidationMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext context, ApiConfigurator apiConfigurator, RequestValidator validator, ILogger<ValidationMiddleware> logger)
     {
         var path = context.Request.Path.Value ?? string.Empty;
+        
+        // Skip validation for health check endpoint
+        if (path.Contains("/api-healthcheck", StringComparison.OrdinalIgnoreCase))
+        {
+            await next(context);
+            return;
+        }
+        
         var method = context.Request.Method.ToUpperInvariant();
         var key = RouteKeyUtility.BuildRouteKey(path, method);
 

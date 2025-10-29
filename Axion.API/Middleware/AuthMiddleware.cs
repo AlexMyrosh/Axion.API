@@ -15,6 +15,14 @@ public class AuthMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext context, IServiceProvider services, ILogger<AuthMiddleware> logger)
     {
         var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
+        
+        // Skip authentication for health check endpoint
+        if (path.Contains("/api-healthcheck", StringComparison.OrdinalIgnoreCase))
+        {
+            await next(context);
+            return;
+        }
+        
         var method = context.Request.Method.ToUpperInvariant();
         var key = RouteKeyUtility.BuildRouteKey(path, method);
 

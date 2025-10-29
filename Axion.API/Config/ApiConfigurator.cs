@@ -8,9 +8,11 @@ public class ApiConfigurator(IConfiguration configuration, HandlerRegistry regis
 {
     private readonly Dictionary<Type, string> _authMap = new();
     private readonly Dictionary<string, RequestSchema?> _routeSchemaMap = new();
+    public bool IsReady { get; private set; }
 
     public Task ConfigureAsync()
     {
+        IsReady = false;
         var container = new ApiRoutesContainer();
         configuration.Bind(container);
 
@@ -32,6 +34,9 @@ public class ApiConfigurator(IConfiguration configuration, HandlerRegistry regis
             logger.LogInformation("Route registered: {Method} {Path} -> {Handler} (Auth: {Auth})", 
                 route.Method, route.Path, handlerType.Name, route.Auth);
         }
+
+        IsReady = true;
+        logger.LogInformation("ApiConfigurator is now ready");
 
         return Task.CompletedTask;
     }

@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using Axion.API.Auth.Abstraction;
 using Axion.API.Auth.Implementation;
 using Axion.API.Config;
+using Axion.API.HealthCheckers.Abstraction;
+using Axion.API.HealthCheckers.Implementation;
 using Axion.API.Middleware;
 using Axion.API.Registry;
 using Axion.API.SerilogConfiguration;
@@ -48,6 +50,12 @@ public abstract class Program
             builder.Services.AddSingleton<IKafkaConsumer, KafkaConsumerStub>();
             builder.Services.AddSingleton<IRedisService, RedisServiceStub>();
             builder.Services.AddSingleton<ITcpClientService, TcpClientServiceStub>();
+
+            // Health checks
+            builder.Services.AddSingleton<IPostgresHealthCheck, PostgresHealthCheck>();
+            builder.Services.AddSingleton<IRedisHealthCheck, RedisHealthCheck>();
+            builder.Services.AddSingleton<IOracleHealthCheck, OracleHealthCheck>();
+            builder.Services.AddSingleton<IKafkaHealthCheck, KafkaHealthCheck>();
 
             builder.Services.AddControllers().AddJsonOptions(o => { 
                 o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
