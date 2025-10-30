@@ -9,6 +9,6 @@ public class GetMerchantsHandler(IMerchantsService merchantsService) : IApiHandl
     public async Task<ApiResponse> HandleAsync(ApiRequest request)
     {
         var result = await merchantsService.GetMerchantsAsync();
-        return ApiResponse.Success(result ?? []);
+        return result is not null ? ApiResponse.Success(result) : ApiResponse.Error("500", "Error getting merchants");
     }
 }

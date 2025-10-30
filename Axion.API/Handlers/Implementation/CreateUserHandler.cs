@@ -28,9 +28,9 @@ public class CreateUserHandler(IUsersService usersService, ILogger<CreateUserHan
                     status = statusProp.GetString() ?? status;
                 }
             }
-
+            
             var result = await usersService.CreateUserAsync(username, email, status);
-            return ApiResponse.Success(result ?? []);
+            return result is not null ? ApiResponse.Success(result) : ApiResponse.Error("500", "Create user failed");
         }
         catch (Exception ex)
         {

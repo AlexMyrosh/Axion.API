@@ -26,7 +26,7 @@ public class CreateMerchantHandler(IMerchantsService merchantsService, ILogger<C
             }
 
             var result = await merchantsService.CreateMerchantAsync(name, email);
-            return ApiResponse.Success(result ?? []);
+            return result is not null ? ApiResponse.Success(result) : ApiResponse.Error("500", "Create merchant failed");
         }
         catch (Exception ex)
         {

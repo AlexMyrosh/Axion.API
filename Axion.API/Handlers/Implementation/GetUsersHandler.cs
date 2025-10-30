@@ -10,6 +10,6 @@ public class GetUsersHandler(IUsersService usersService) : IApiHandler
     {
         var status = request.Query.TryGetValue("status", out var s) && !string.IsNullOrWhiteSpace(s) ? s : "active";
         var result = await usersService.GetActiveUsersAsync(status);
-        return ApiResponse.Success(result ?? []);
+        return result is not null ? ApiResponse.Success(result) : ApiResponse.Error("500", "Error getting users");
     }
 }
