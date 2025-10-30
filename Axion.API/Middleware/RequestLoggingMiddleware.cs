@@ -17,7 +17,8 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
             context.Request.Body.Position = 0;
         }
 
-        logger.LogInformation($"REQUEST {context.Request.Method} {context.Request.Path} Body: {FilterSensitiveData(requestBody)}");
+        var bodyFormatted = FilterSensitiveData(requestBody);
+        logger.LogInformation($"REQUEST {context.Request.Method} {context.Request.Path} Body: {(string.IsNullOrEmpty(bodyFormatted) ? "EMPTY" : bodyFormatted)}");
 
         // Intercepting response
         var originalBody = context.Response.Body;

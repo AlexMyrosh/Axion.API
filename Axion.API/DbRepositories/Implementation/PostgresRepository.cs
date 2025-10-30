@@ -52,6 +52,7 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
                     return false;
                 }
 
+                var expectedPools = new List<string>();
                 foreach (var pool in poolsSection.GetChildren())
                 {
                     var poolKey = pool.Key.ToLowerInvariant();
@@ -62,6 +63,7 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
                         continue;
                     }
 
+                    expectedPools.Add(poolKey);
                     var dataSource = await CreateDataSourceWithRetryAsync(connectionString, poolKey);
                     if (dataSource != null)
                     {
@@ -69,16 +71,24 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
                     }
                 }
 
-                if (_poolNameToDataSource.Count == 0)
+                if (expectedPools.Count == 0)
                 {
-                    logger.LogWarning("PostgreSQL initialization incomplete: no pools initialized");
+                    logger.LogWarning("PostgreSQL initialization incomplete: no pools configured with valid connection strings");
+                    IsInit = false;
+                    return false;
+                }
+
+                if (_poolNameToDataSource.Count != expectedPools.Count)
+                {
+                    var missing = expectedPools.Where(p => !_poolNameToDataSource.ContainsKey(p)).ToArray();
+                    logger.LogWarning("PostgreSQL initialization partial: missing pools: {MissingPools}. Initialized: {InitializedPools}", string.Join(", ", missing), string.Join(", ", _poolNameToDataSource.Keys));
                     IsInit = false;
                     return false;
                 }
 
                 IsInit = true;
                 ActivePoolName = _defaultPoolName;
-                logger.LogInformation("PostgreSQL initialized. Pools: {Pools}. Active: {Active}", string.Join(", ", _poolNameToDataSource.Keys), ActivePoolName);
+                logger.LogInformation("PostgreSQL initialized. All pools ready: {Pools}. Active: {Active}", string.Join(", ", _poolNameToDataSource.Keys), ActivePoolName);
                 return true;
             }
             catch (Exception ex)

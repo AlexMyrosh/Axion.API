@@ -21,11 +21,11 @@ public class HealthCheckController(ApiConfigurator apiConfigurator, IPostgresHea
         var isHealthy = healthStatus is { ApiConfigurator: true, Postgres: true};
         if (isHealthy)
         {
-            logger.LogInformation("HealthCheck: OK - All components are healthy");
-            return Ok(new { status = "OK", message = "Services are healthy", components = healthStatus });
+            logger.LogInformation("HealthCheck: OK - All components are healthy. Components: {@Components}", healthStatus);
+            return Ok(new { status = "OK", message = "Services are healthy" });
         }
 
         logger.LogWarning("HealthCheck: FAILED - Some components are not healthy. Components: {@Components}", healthStatus);
-        return StatusCode(418, new { status = "not_ready", message = "Services are not ready", components = healthStatus });
+        return StatusCode(418, new { status = "not_ready", message = "Services are not ready" });
     }
 }

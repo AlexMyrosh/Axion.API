@@ -75,6 +75,7 @@ public class ValidationMiddleware(RequestDelegate next)
             if (errors.Count > 0)
             {
                 logger.LogWarning("Validation failed for {Method} {Path}: {ErrorCount} errors", method, path, errors.Count);
+                logger.LogWarning("Validation errors: {Errors}", errors.Select(e => e.Message));
                 
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 var errorResponse = ApiResponse.Error("400", "Request validation failed", new { payment_status = "error" });
@@ -90,6 +91,7 @@ public class ValidationMiddleware(RequestDelegate next)
             if (errors.Count > 0)
             {
                 logger.LogWarning("Validation failed for {Method} {Path}: Missing required fields", method, path);
+                logger.LogWarning("Validation errors: {Errors}", errors.Select(e => e.Message));
                 
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 var errorResponse = ApiResponse.Error("400", "Request validation failed", new { payment_status = "error" });

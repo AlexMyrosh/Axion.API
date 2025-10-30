@@ -10,7 +10,6 @@ namespace Axion.API.Middleware;
 public class AuthMiddleware(RequestDelegate next)
 {
     private const string StaticTokenPrefix = "Static ";
-    private const string JwtTokenPrefix = "Bearer ";
     
     public async Task InvokeAsync(HttpContext context, IServiceProvider services, ILogger<AuthMiddleware> logger)
     {
@@ -40,18 +39,15 @@ public class AuthMiddleware(RequestDelegate next)
         {
             case "jwt":
                 {
-                    var authHeader = context.Request.Headers["Authorization"].ToString();
-                    if (string.IsNullOrEmpty(authHeader) || authHeader.Length <= JwtTokenPrefix.Length || 
-                        !authHeader.StartsWith(JwtTokenPrefix, StringComparison.OrdinalIgnoreCase))
+                    var jwtToken = context.Request.Headers["x-auth-token"].ToString();
+                    if (string.IsNullOrEmpty(jwtToken))
                     {
-                        logger.LogWarning("Missing or invalid JWT token format");
+                        logger.LogWarning("Missing JWT token");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         var jwtErrorResponse = ApiResponse.Error("401", "Missing JWT token", new { payment_status = "error" });
                         await context.Response.WriteAsJsonAsync(jwtErrorResponse.Data);
                         return;
                     }
-
-                    var token = authHeader.Substring(JwtTokenPrefix.Length);
                     
                     // Read body to check for timestamp
                     JsonElement? requestBody = null;
@@ -77,7 +73,7 @@ public class AuthMiddleware(RequestDelegate next)
                     }
                     
                     var jwtProvider = services.GetRequiredService<IJwtAuthProvider>();
-                    if (!jwtProvider.Validate(token, requestBody))
+                    if (!jwtProvider.Validate(jwtToken, requestBody))
                     {
                         logger.LogWarning("Invalid JWT token or body validation failed");
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
