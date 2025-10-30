@@ -6,25 +6,19 @@ using Microsoft.AspNetCore.Mvc;
 namespace Axion.API.Controllers;
 
 [ApiController]
-[Route("api-healthcheck")]
-public class HealthCheckController(ApiConfigurator apiConfigurator, IPostgresHealthCheck postgresHealthCheck, IRedisHealthCheck redisHealthCheck, 
-    IOracleHealthCheck oracleHealthCheck, IKafkaHealthCheck kafkaHealthCheck, ILogger<HealthCheckController> logger) : ControllerBase
+[Route("api/")]
+public class HealthCheckController(ApiConfigurator apiConfigurator, IPostgresHealthCheck postgresHealthCheck, ILogger<HealthCheckController> logger) : ControllerBase
 {
-    [HttpGet]
+    [HttpGet("health_check")]
     public async Task<IActionResult> Check()
     {
         var healthStatus = new HealthCheckResult
         {
             ApiConfigurator = apiConfigurator.IsReady,
-            
-            // Check all database connections
             Postgres = await postgresHealthCheck.CheckHealthAsync(),
-            Redis = await redisHealthCheck.CheckHealthAsync(),
-            Oracle = await oracleHealthCheck.CheckHealthAsync(),
-            Kafka = await kafkaHealthCheck.CheckHealthAsync()
         };
 
-        var isHealthy = healthStatus is { ApiConfigurator: true, Postgres: true, Redis: true, Oracle: true, Kafka: true };
+        var isHealthy = healthStatus is { ApiConfigurator: true, Postgres: true};
         if (isHealthy)
         {
             logger.LogInformation("HealthCheck: OK - All components are healthy");

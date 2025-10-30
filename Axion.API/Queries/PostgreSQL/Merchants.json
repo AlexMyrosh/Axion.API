@@ -1,0 +1,6 @@
+{
+  "Queries": {
+    "GetMerchants": "SELECT id, name, email FROM merchants ORDER BY id DESC",
+    "CreateMerchant": "INSERT INTO merchants (name, email) VALUES (@name, @email) RETURNING id"
+  }
+}

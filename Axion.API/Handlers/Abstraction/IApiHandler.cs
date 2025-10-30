@@ -1,6 +1,6 @@
 using Axion.API.Models;
 
-namespace Axion.API.Handlers;
+namespace Axion.API.Handlers.Abstraction;
 
 public interface IApiHandler
 {

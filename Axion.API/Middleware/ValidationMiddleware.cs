@@ -13,7 +13,7 @@ public class ValidationMiddleware(RequestDelegate next)
         var path = context.Request.Path.Value ?? string.Empty;
         
         // Skip validation for health check endpoint
-        if (path.Contains("/api-healthcheck", StringComparison.OrdinalIgnoreCase))
+        if (path.Contains("/api/health_check", StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;

@@ -17,7 +17,7 @@ public class AuthMiddleware(RequestDelegate next)
         var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
         
         // Skip authentication for health check endpoint
-        if (path.Contains("/api-healthcheck", StringComparison.OrdinalIgnoreCase))
+        if (path.Contains("/api/health_check", StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;

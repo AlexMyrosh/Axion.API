@@ -1,0 +1,6 @@
+{
+  "Queries": {
+    "GetPayments": "SELECT id, amount, currency, status FROM payments ORDER BY id DESC",
+    "CreatePayment": "INSERT INTO payments (amount, currency, status) VALUES (@amount, @currency, @status) RETURNING id"
+  }
+}

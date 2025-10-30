@@ -1,0 +1,6 @@
+{
+  "Queries": {
+    "GetActiveUsers": "SELECT id, username, email, status FROM users WHERE status = @status ORDER BY id DESC",
+    "CreateUser": "INSERT INTO users (username, email, status) VALUES (@username, @email, @status) RETURNING id"
+  }
+}

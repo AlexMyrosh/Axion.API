@@ -3,6 +3,9 @@ using System.Text.Json.Serialization;
 using Axion.API.Auth.Abstraction;
 using Axion.API.Auth.Implementation;
 using Axion.API.Config;
+using Axion.API.Config.Abstraction;
+using Axion.API.DbRepositories.Abstraction;
+using Axion.API.DbRepositories.Implementation;
 using Axion.API.HealthCheckers.Abstraction;
 using Axion.API.HealthCheckers.Implementation;
 using Axion.API.Middleware;
@@ -39,17 +42,19 @@ public abstract class Program
             // Services
             builder.Services.AddSingleton<HandlerRegistry>();
             builder.Services.AddSingleton<ApiConfigurator>();
+            builder.Services.AddSingleton<IQueryConfigurator, QueryConfigurator>();
             builder.Services.AddSingleton<RequestValidator>();
 
             // Auth providers
             builder.Services.AddSingleton<IJwtAuthProvider, JwtAuthProvider>();
             builder.Services.AddSingleton<IStaticTokenAuthProvider, StaticTokenAuthProvider>();
+            
+            // PostgreSQL service
+            builder.Services.AddSingleton<IPostgresRepository, PostgresRepository>();
 
-            // Infrastructure placeholders
-            builder.Services.AddSingleton<IKafkaProducer, KafkaProducerStub>();
-            builder.Services.AddSingleton<IKafkaConsumer, KafkaConsumerStub>();
-            builder.Services.AddSingleton<IRedisService, RedisServiceStub>();
-            builder.Services.AddSingleton<ITcpClientService, TcpClientServiceStub>();
+            // Application services
+            builder.Services.AddSingleton<IUsersService, UsersService>();
+            builder.Services.AddSingleton<IMerchantsService, MerchantsService>();
 
             // Health checks
             builder.Services.AddSingleton<IPostgresHealthCheck, PostgresHealthCheck>();
@@ -77,6 +82,14 @@ public abstract class Program
             }
 
             app.MapControllers();
+
+            // Load queries from /Queries directory
+            var queryRegistry = app.Services.GetRequiredService<IQueryConfigurator>();
+            await queryRegistry.InitializeAsync();
+            
+            // Initialize postgres service
+            var postgresService = app.Services.GetRequiredService<IPostgresRepository>();
+            await postgresService.InitializeAsync();
 
             // Load handlers from configuration
             var apiConfigurator = app.Services.GetRequiredService<ApiConfigurator>();

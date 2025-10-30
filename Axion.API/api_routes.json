@@ -1,63 +1,41 @@
 {
   "ApiRoutes": [
     {
-      "Path": "/api/payments/create",
+      "Path": "/api/users",
+      "Method": "GET",
+      "Auth": "none",
+      "Handler": "Axion.API.Handlers.Implementation.GetUsersHandler, Axion.API",
+      "RequestSchema": { "Fields": [] }
+    },
+    {
+      "Path": "/api/users",
       "Method": "POST",
-      "Auth": "jwt",
-      "Handler": "Axion.API.Handlers.CreatePaymentHandler, Axion.API",
+      "Auth": "none",
+      "Handler": "Axion.API.Handlers.Implementation.CreateUserHandler, Axion.API",
       "RequestSchema": {
         "Fields": [
-          
+          { "Name": "username", "Type": "string", "Required": true },
+          { "Name": "email", "Type": "string", "Required": true },
+          { "Name": "status", "Type": "string", "Required": false }
         ]
       }
     },
     {
-      "Path": "/api/payments/refund",
+      "Path": "/api/merchants",
+      "Method": "GET",
+      "Auth": "none",
+      "Handler": "Axion.API.Handlers.Implementation.GetMerchantsHandler, Axion.API",
+      "RequestSchema": { "Fields": [] }
+    },
+    {
+      "Path": "/api/merchants",
       "Method": "POST",
-      "Auth": "jwt",
-      "Handler": "Axion.API.Handlers.RefundPaymentHandler, Axion.API",
+      "Auth": "none",
+      "Handler": "Axion.API.Handlers.Implementation.CreateMerchantHandler, Axion.API",
       "RequestSchema": {
         "Fields": [
-          {
-            "Name": "amount",
-            "Type": "decimal",
-            "Required": true,
-            "Min": 0.01,
-            "Max": 100000
-          },
-          {
-            "Name": "currency",
-            "Type": "string",
-            "Required": true,
-            "AllowedValues": [
-              "USD",
-              "EUR",
-              "UAH"
-            ]
-          },
-          {
-            "Name": "merchant_name",
-            "Type": "string",
-            "Required": true,
-            "RegExp": "[A-Za-z0-9_@,-./+!]{4,}"
-          },
-          {
-            "Name": "order_id",
-            "Type": "string",
-            "Required": true,
-            "RegExp": "[0-9A-Za-z_]{5,}"
-          },
-          {
-            "Name": "card_number",
-            "Type": "card_number",
-            "Required": true
-          },
-          {
-            "Name": "description",
-            "Type": "string",
-            "Required": false,
-            "MaxLength": 256
-          }
+          { "Name": "name", "Type": "string", "Required": true },
+          { "Name": "email", "Type": "string", "Required": true }
         ]
       }
     }

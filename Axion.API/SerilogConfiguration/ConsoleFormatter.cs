@@ -51,6 +51,7 @@ public class ConsoleFormatter : ITextFormatter
         output.Write(" ");
 
         // Message
+        // TODO: write log message manually
         output.Write(logEvent.RenderMessage());
         output.WriteLine();
 
