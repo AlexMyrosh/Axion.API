@@ -3,6 +3,7 @@ using Axion.API.Registry;
 using Axion.API.Models;
 using System.Text.Json;
 using Axion.API.Auth.Abstraction;
+using Axion.API.Config.Abstraction;
 using Axion.API.Utilities;
 
 namespace Axion.API.Middleware;
@@ -32,7 +33,7 @@ public class AuthMiddleware(RequestDelegate next)
             return;
         }
         
-        var apiConfigurator = services.GetRequiredService<ApiConfigurator>();
+        var apiConfigurator = services.GetRequiredService<IApiConfigurator>();
         var authType = apiConfigurator.GetAuthTypeForHandler(handlerType);
         
         switch (authType?.ToLowerInvariant())

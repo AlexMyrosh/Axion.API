@@ -2,6 +2,8 @@ namespace Axion.API.Config.Abstraction;
 
 public interface IQueryConfigurator
 {
+    bool IsInitialized { get; }
+    
     Task InitializeAsync();
-    bool TryGetQuery(string entityName, string queryName, out string queryText);
+    bool TryGetQuery(string queryName, out string queryText);
 }

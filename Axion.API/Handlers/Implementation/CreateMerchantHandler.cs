@@ -1,11 +1,10 @@
-using System.Text.Json;
+using Axion.API.DbRepositories.Abstraction;
 using Axion.API.Handlers.Abstraction;
 using Axion.API.Models;
-using Axion.API.Services.Abstraction;
 
 namespace Axion.API.Handlers.Implementation;
 
-public class CreateMerchantHandler(IMerchantsService merchantsService, ILogger<CreateMerchantHandler> logger) : IApiHandler
+public class CreateMerchantHandler(IPostgresRepository postgresRepository, ILogger<CreateMerchantHandler> logger) : IApiHandler
 {
     public async Task<ApiResponse> HandleAsync(ApiRequest request)
     {
@@ -24,8 +23,14 @@ public class CreateMerchantHandler(IMerchantsService merchantsService, ILogger<C
                     email = emailProp.GetString() ?? string.Empty;
                 }
             }
+            
+            var parameters = new Dictionary<string, object> 
+            {
+                ["name"] = name, 
+                ["email"] = email 
+            };
 
-            var result = await merchantsService.CreateMerchantAsync(name, email);
+            var result = await postgresRepository.DbExecuteAsync(null, "CreateMerchant", parameters);
             return result is not null ? ApiResponse.Success(result) : ApiResponse.Error("500", "Create merchant failed");
         }
         catch (Exception ex)

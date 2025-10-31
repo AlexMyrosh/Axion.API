@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Axion.API.Config;
+using Axion.API.Config.Abstraction;
 using Axion.API.Utilities;
 using Axion.API.Models;
 using Axion.API.Validation;
@@ -8,7 +9,7 @@ namespace Axion.API.Middleware;
 
 public class ValidationMiddleware(RequestDelegate next)
 {
-    public async Task InvokeAsync(HttpContext context, ApiConfigurator apiConfigurator, RequestValidator validator, ILogger<ValidationMiddleware> logger)
+    public async Task InvokeAsync(HttpContext context, IApiConfigurator apiConfigurator, RequestValidator validator, ILogger<ValidationMiddleware> logger)
     {
         var path = context.Request.Path.Value ?? string.Empty;
         

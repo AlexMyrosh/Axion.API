@@ -1,10 +1,11 @@
+using Axion.API.Config.Abstraction;
 using Axion.API.Utilities;
 using Axion.API.Models;
 using Axion.API.Registry;
 
 namespace Axion.API.Config;
 
-public class ApiConfigurator(IConfiguration configuration, HandlerRegistry registry, ILogger<ApiConfigurator> logger)
+public class ApiConfigurator(IConfiguration configuration, HandlerRegistry registry, ILogger<ApiConfigurator> logger) : IApiConfigurator
 {
     private readonly Dictionary<Type, string> _authMap = new();
     private readonly Dictionary<string, RequestSchema?> _routeSchemaMap = new();
@@ -36,7 +37,7 @@ public class ApiConfigurator(IConfiguration configuration, HandlerRegistry regis
         }
 
         IsReady = true;
-        logger.LogInformation("ApiConfigurator is now ready");
+        logger.LogInformation("ApiConfigurator is ready now");
 
         return Task.CompletedTask;
     }

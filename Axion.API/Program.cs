@@ -11,8 +11,6 @@ using Axion.API.HealthCheckers.Implementation;
 using Axion.API.Middleware;
 using Axion.API.Registry;
 using Axion.API.SerilogConfiguration;
-using Axion.API.Services.Abstraction;
-using Axion.API.Services.Implementation;
 using Axion.API.Validation;
 using Serilog;
 using Serilog.Events;
@@ -41,7 +39,7 @@ public abstract class Program
 
             // Services
             builder.Services.AddSingleton<HandlerRegistry>();
-            builder.Services.AddSingleton<ApiConfigurator>();
+            builder.Services.AddSingleton<IApiConfigurator, ApiConfigurator>();
             builder.Services.AddSingleton<IQueryConfigurator, QueryConfigurator>();
             builder.Services.AddSingleton<RequestValidator>();
 
@@ -51,11 +49,7 @@ public abstract class Program
             
             // PostgreSQL service
             builder.Services.AddSingleton<IPostgresRepository, PostgresRepository>();
-
-            // Application services
-            builder.Services.AddSingleton<IUsersService, UsersService>();
-            builder.Services.AddSingleton<IMerchantsService, MerchantsService>();
-
+            
             // Health checks
             builder.Services.AddSingleton<IPostgresHealthCheck, PostgresHealthCheck>();
             builder.Services.AddSingleton<IRedisHealthCheck, RedisHealthCheck>();
@@ -92,7 +86,7 @@ public abstract class Program
             await postgresService.InitializeAsync();
 
             // Load handlers from configuration
-            var apiConfigurator = app.Services.GetRequiredService<ApiConfigurator>();
+            var apiConfigurator = app.Services.GetRequiredService<IApiConfigurator>();
             await apiConfigurator.ConfigureAsync();
 
             await app.RunAsync();

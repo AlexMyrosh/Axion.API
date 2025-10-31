@@ -10,8 +10,6 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private readonly ConcurrentDictionary<string, NpgsqlDataSource> _poolNameToDataSource = new();
     private string? _defaultPoolName;
-    
-    public string? ActivePoolName { get; private set; }
     public bool IsInit { get; private set; }
     public bool IsProgress { get; private set; }
 
@@ -87,8 +85,7 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
                 }
 
                 IsInit = true;
-                ActivePoolName = _defaultPoolName;
-                logger.LogInformation("PostgreSQL initialized. All pools ready: {Pools}. Active: {Active}", string.Join(", ", _poolNameToDataSource.Keys), ActivePoolName);
+                logger.LogInformation("PostgreSQL initialized. All pools ready: {Pools}. Default: {Default}", string.Join(", ", _poolNameToDataSource.Keys), _defaultPoolName);
                 return true;
             }
             catch (Exception ex)
@@ -105,11 +102,11 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
         }
     }
 
-    public async Task<List<Dictionary<string, object?>>?> DbExecuteAsync(string entityName, string queryName, Dictionary<string, object>? parameters = null)
+    public async Task<List<Dictionary<string, object?>>?> DbExecuteAsync(string? poolName, string queryName, Dictionary<string, object>? parameters = null)
     {
-        if (string.IsNullOrWhiteSpace(entityName) || string.IsNullOrWhiteSpace(queryName))
+        if (string.IsNullOrWhiteSpace(queryName))
         {
-            logger.LogWarning("Entity or query name is empty");
+            logger.LogWarning("Query name is empty");
             return null;
         }
         
@@ -119,13 +116,20 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
             return null;
         }
 
-        if (!queryConfigurator.TryGetQuery(entityName.ToLowerInvariant(), queryName, out var sql) || string.IsNullOrWhiteSpace(sql))
+        var resolvedPoolName = string.IsNullOrWhiteSpace(poolName) ? _defaultPoolName : poolName;
+        if (string.IsNullOrWhiteSpace(resolvedPoolName))
         {
-            logger.LogWarning("Query '{Query}' not found for entity '{Entity}'", queryName, entityName);
+            logger.LogWarning("Pool name is empty and no default pool configured");
             return null;
         }
 
-        var dataSource = GetActiveConnection();
+        if (!queryConfigurator.TryGetQuery(queryName, out var sql) || string.IsNullOrWhiteSpace(sql))
+        {
+            logger.LogWarning("Query '{Query}' not found", queryName);
+            return null;
+        }
+
+        var dataSource = GetConnection(resolvedPoolName);
         if (dataSource == null)
         {
             return null;
@@ -162,12 +166,12 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error executing query {Entity}.{Query} on pool {Pool}", entityName, queryName, ActivePoolName);
+            logger.LogError(ex, "Error executing query {Query} on pool {Pool}", queryName, resolvedPoolName);
             return null;
         }
     }
 
-    public NpgsqlDataSource? GetConnection(string poolName)
+    private NpgsqlDataSource? GetConnection(string poolName)
     {
         if (!IsInit)
         {
@@ -183,42 +187,6 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
         }
         
         return dataSource;
-    }
-
-    public NpgsqlDataSource? GetActiveConnection()
-    {
-        if (!IsInit)
-        {
-            return null;
-        }
-        
-        var poolName = ActivePoolName ?? _defaultPoolName;
-        return string.IsNullOrWhiteSpace(poolName) ? null : GetConnection(poolName);
-    }
-
-    public bool SetActivePool(string poolName)
-    {
-        if (!IsInit)
-        {
-            logger.LogWarning("Attempt to set active pool before initialization");
-            return false;
-        }
-        
-        if (string.IsNullOrWhiteSpace(poolName))
-        {
-            logger.LogWarning("Active pool name is empty");
-            return false;
-        }
-        
-        var normalizedPoolName = poolName.ToLowerInvariant();
-        if (!_poolNameToDataSource.ContainsKey(normalizedPoolName))
-        {
-            logger.LogWarning("Cannot set active pool. Pool '{Pool}' is not configured", normalizedPoolName);
-            return false;
-        }
-        
-        ActivePoolName = normalizedPoolName;
-        return true;
     }
 
     private async Task<NpgsqlDataSource?> CreateDataSourceWithRetryAsync(string connectionString, string poolName)

@@ -7,7 +7,7 @@ namespace Axion.API.Config;
 
 public class QueryConfigurator(ILogger<QueryConfigurator> logger) : IQueryConfigurator
 {
-    private readonly ConcurrentDictionary<string, Dictionary<string, string>> _queriesByEntity = new();
+    private readonly ConcurrentDictionary<string, string> _queries = new();
     public bool IsInitialized { get; private set; }
 
     public async Task InitializeAsync()
@@ -34,10 +34,13 @@ public class QueryConfigurator(ILogger<QueryConfigurator> logger) : IQueryConfig
         }
 
         var errors = new List<string>();
+        var duplicates = new List<string>();
+        var totalQueries = 0;
+        var addedQueries = 0;
+
         foreach (var filePath in jsonFiles)
         {
             var fileName = Path.GetFileNameWithoutExtension(filePath);
-            var entityKey = fileName.ToLowerInvariant();
 
             try
             {
@@ -82,20 +85,21 @@ public class QueryConfigurator(ILogger<QueryConfigurator> logger) : IQueryConfig
                     continue;
                 }
 
-                // Merge strategy: if entity already exists, later files override same query names
-                _queriesByEntity.AddOrUpdate(entityKey,
-                    _ => new Dictionary<string, string>(queryFile.Queries),
-                    (_, existing) =>
+                var addedFromFile = 0;
+                foreach (var (queryName, queryText) in queryFile.Queries)
+                {
+                    totalQueries++;
+                    if (_queries.TryAdd(queryName, queryText))
                     {
-                        foreach (var (key, value) in queryFile.Queries)
-                        {
-                            existing[key] = value;
-                        }
-                        
-                        return existing;
-                    });
+                        addedQueries++;
+                        addedFromFile++;
+                        continue;
+                    }
 
-                logger.LogInformation("Loaded {Count} queries from {FileName}.json", queryFile.Queries.Count, fileName);
+                    duplicates.Add($"{queryName} (file {fileName}.json)");
+                }
+
+                logger.LogInformation("Processed {FileName}: added {Added} of {Total} queries", $"{fileName}.json", addedFromFile, queryFile.Queries.Count);
             }
             catch (JsonException ex)
             {
@@ -112,29 +116,28 @@ public class QueryConfigurator(ILogger<QueryConfigurator> logger) : IQueryConfig
             logger.LogError("Errors loading query files:\n{Errors}", string.Join("\n", errors));
         }
 
+        if (duplicates.Count > 0)
+        {
+            logger.LogWarning("Skipped duplicate queries: {Duplicates}", string.Join(", ", duplicates));
+        }
+
         IsInitialized = true;
-        logger.LogInformation("Query registry initialized. Entities: {Count}", _queriesByEntity.Count);
+        logger.LogInformation("Query registry initialized. Added {Added} of {Total} queries. Unique queries: {UniqueCount}", addedQueries, totalQueries, _queries.Count);
     }
 
-    public bool TryGetQuery(string entityName, string queryName, out string queryText)
+    public bool TryGetQuery(string queryName, out string queryText)
     {
         queryText = string.Empty;
-        var normalizedEntity = entityName.ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(normalizedEntity) || string.IsNullOrWhiteSpace(queryName))
+        if (string.IsNullOrWhiteSpace(queryName))
         {
             return false;
         }
 
-        if (!_queriesByEntity.TryGetValue(normalizedEntity, out var queries))
+        if (!_queries.TryGetValue(queryName, out var found) || string.IsNullOrWhiteSpace(found))
         {
             return false;
         }
-        
-        if (!queries.TryGetValue(queryName, out var found) || string.IsNullOrWhiteSpace(found))
-        {
-            return false;
-        }
-        
+
         queryText = found;
         return true;
     }

@@ -1,4 +1,5 @@
 using Axion.API.Config;
+using Axion.API.Config.Abstraction;
 using Axion.API.HealthCheckers.Abstraction;
 using Axion.API.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ namespace Axion.API.Controllers;
 
 [ApiController]
 [Route("api/")]
-public class HealthCheckController(ApiConfigurator apiConfigurator, IPostgresHealthCheck postgresHealthCheck, ILogger<HealthCheckController> logger) : ControllerBase
+public class HealthCheckController(IApiConfigurator apiConfigurator, IQueryConfigurator queryConfigurator, IPostgresHealthCheck postgresHealthCheck, ILogger<HealthCheckController> logger) : ControllerBase
 {
     [HttpGet("health_check")]
     public async Task<IActionResult> Check()
@@ -15,10 +16,11 @@ public class HealthCheckController(ApiConfigurator apiConfigurator, IPostgresHea
         var healthStatus = new HealthCheckResult
         {
             ApiConfigurator = apiConfigurator.IsReady,
+            QueryConfigurator = queryConfigurator.IsInitialized,
             Postgres = await postgresHealthCheck.CheckHealthAsync(),
         };
 
-        var isHealthy = healthStatus is { ApiConfigurator: true, Postgres: true};
+        var isHealthy = healthStatus is { ApiConfigurator: true, QueryConfigurator: true, Postgres: true};
         if (isHealthy)
         {
             logger.LogInformation("HealthCheck: OK - All components are healthy. Components: {@Components}", healthStatus);

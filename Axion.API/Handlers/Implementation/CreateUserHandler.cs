@@ -1,10 +1,10 @@
+using Axion.API.DbRepositories.Abstraction;
 using Axion.API.Handlers.Abstraction;
 using Axion.API.Models;
-using Axion.API.Services.Abstraction;
 
 namespace Axion.API.Handlers.Implementation;
 
-public class CreateUserHandler(IUsersService usersService, ILogger<CreateUserHandler> logger) : IApiHandler
+public class CreateUserHandler(IPostgresRepository postgresRepository, ILogger<CreateUserHandler> logger) : IApiHandler
 {
     public async Task<ApiResponse> HandleAsync(ApiRequest request)
     {
@@ -29,7 +29,13 @@ public class CreateUserHandler(IUsersService usersService, ILogger<CreateUserHan
                 }
             }
             
-            var result = await usersService.CreateUserAsync(username, email, status);
+            var parameters = new Dictionary<string, object>
+             {
+                 ["username"] = username,
+                 ["email"] = email,
+                 ["status"] = status
+             };
+            var result = await postgresRepository.DbExecuteAsync(null, "CreateUser", parameters);
             return result is not null ? ApiResponse.Success(result) : ApiResponse.Error("500", "Create user failed");
         }
         catch (Exception ex)
