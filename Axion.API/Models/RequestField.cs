@@ -2,11 +2,11 @@ namespace Axion.API.Models;
 
 public class RequestField
 {
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; set; } = string.Empty;
     
-    public string Type { get; set; } = string.Empty;
+    public required string Type { get; set; } = string.Empty;
     
-    public bool Required { get; set; }
+    public required bool Required { get; set; }
     
     public decimal? Min { get; set; }
     

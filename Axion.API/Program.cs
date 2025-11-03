@@ -42,6 +42,7 @@ public abstract class Program
             builder.Services.AddSingleton<IApiConfigurator, ApiConfigurator>();
             builder.Services.AddSingleton<IQueryConfigurator, QueryConfigurator>();
             builder.Services.AddSingleton<RequestValidator>();
+            builder.Services.AddSingleton<ApiRouteValidator>();
 
             // Auth providers
             builder.Services.AddSingleton<IJwtAuthProvider, JwtAuthProvider>();

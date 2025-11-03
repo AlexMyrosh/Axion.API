@@ -16,7 +16,7 @@ public class RequestValidator : IRequestFieldValidator
     public List<ValidationError> Validate(JsonElement? body, RequestSchema? schema)
     {
         var errors = new List<ValidationError>();
-        if (schema == null || schema.Fields.Count == 0)
+        if (schema == null || schema.Fields == null || schema.Fields.Count == 0)
         {
             return errors;
         }
