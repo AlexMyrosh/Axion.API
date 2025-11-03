@@ -1,5 +1,3 @@
-using System.Text.Json;
-using Axion.API.Config;
 using Axion.API.Config.Abstraction;
 using Axion.API.Utilities;
 using Axion.API.Models;
@@ -26,51 +24,29 @@ public class ValidationMiddleware(RequestDelegate next)
         var schema = apiConfigurator.GetRequestSchemaForRoute(key);
         
         // If no schema defined or no fields, skip validation
-        if (schema == null || schema.Fields.Count == 0)
+        if (schema?.Fields == null || schema.Fields.Count == 0)
         {
             await next(context);
             return;
         }
-
-        // Only validate if there's a body to validate (for POST, PUT, PATCH)
-        if (context.Request.ContentLength > 0 && context.Request.ContentType?.Contains("application/json") == true)
+        
+        var body = BodyReadingMiddleware.GetJsonBody(context);
+        
+        // Check if body was expected but failed to parse
+        if (context.Request.ContentLength > 0 && 
+            context.Request.ContentType?.Contains("application/json") == true && 
+            body == null &&
+            BodyReadingMiddleware.GetRawBody(context) != null)
         {
-            // Enable buffering so we can read the body multiple times
-            context.Request.EnableBuffering();
-            
-            JsonElement? body = null;
-            
-            try
-            {
-                using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
-                var bodyString = await reader.ReadToEndAsync();
-                
-                // Reset the stream position for the next middleware/controller
-                context.Request.Body.Position = 0;
-
-                if (!string.IsNullOrWhiteSpace(bodyString))
-                {
-                    var jsonDoc = JsonDocument.Parse(bodyString);
-                    body = jsonDoc.RootElement;
-                }
-            }
-            catch (JsonException ex)
-            {
-                logger.LogWarning(ex, "Invalid JSON in request body");
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                var errorResponse = ApiResponse.Error("400", "Request body contains invalid JSON", new { payment_status = "error" });
-                await context.Response.WriteAsJsonAsync(errorResponse.Data);
-                return;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error reading request body");
-                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                var errorResponse = ApiResponse.Error("500", "Something went wrong. Please try again later.", new { payment_status = "error" });
-                await context.Response.WriteAsJsonAsync(errorResponse.Data);
-                return;
-            }
-
+            logger.LogWarning("Invalid JSON in request body");
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            var errorResponse = ApiResponse.Error("400", "Request body contains invalid JSON", new { payment_status = "error" });
+            await context.Response.WriteAsJsonAsync(errorResponse.Data);
+            return;
+        }
+        
+        if (body != null)
+        {
             var errors = validator.Validate(body, schema);
             
             if (errors.Count > 0)

@@ -1,10 +1,8 @@
-using Axion.API.Config;
-using Axion.API.Registry;
 using Axion.API.Models;
-using System.Text.Json;
 using Axion.API.Auth.Abstraction;
 using Axion.API.Config.Abstraction;
 using Axion.API.Utilities;
+using Axion.API.Registry;
 
 namespace Axion.API.Middleware;
 
@@ -50,28 +48,8 @@ public class AuthMiddleware(RequestDelegate next)
                         return;
                     }
                     
-                    // Read body to check for timestamp
-                    JsonElement? requestBody = null;
-                    if (context.Request.ContentLength > 0 && context.Request.ContentType?.Contains("application/json") == true)
-                    {
-                        context.Request.EnableBuffering();
-                        using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
-                        var bodyStr = await reader.ReadToEndAsync();
-                        context.Request.Body.Position = 0;
-                        
-                        if (!string.IsNullOrWhiteSpace(bodyStr))
-                        {
-                            try
-                            {
-                                var jsonDoc = JsonDocument.Parse(bodyStr);
-                                requestBody = jsonDoc.RootElement;
-                            }
-                            catch (JsonException ex)
-                            {
-                                logger.LogWarning(ex, "Failed to parse request body as JSON");
-                            }
-                        }
-                    }
+                    // Get cached body from BodyReadingMiddleware
+                    var requestBody = BodyReadingMiddleware.GetJsonBody(context);
                     
                     var jwtProvider = services.GetRequiredService<IJwtAuthProvider>();
                     if (!jwtProvider.Validate(jwtToken, requestBody))

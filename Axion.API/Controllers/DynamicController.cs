@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Axion.API.Handlers.Abstraction;
+using Axion.API.Middleware;
 using Axion.API.Utilities;
 using Axion.API.Models;
 using Axion.API.Registry;
@@ -43,11 +43,10 @@ public class DynamicController(HandlerRegistry registry, IServiceProvider servic
             request.Query[q.Key] = q.Value.ToString();
         }
         
-        using var sr = new StreamReader(Request.Body);
-        var bodyStr = await sr.ReadToEndAsync();
-        if (!string.IsNullOrWhiteSpace(bodyStr))
+        var body = BodyReadingMiddleware.GetJsonBody(HttpContext);
+        if (body != null)
         {
-            request.Body = JsonDocument.Parse(bodyStr).RootElement;
+            request.Body = body;
         }
 
         var handler = (IApiHandler?)services.GetService(handlerType) ?? ActivatorUtilities.CreateInstance(services, handlerType) as IApiHandler;

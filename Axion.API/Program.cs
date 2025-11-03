@@ -13,6 +13,7 @@ using Axion.API.Registry;
 using Axion.API.SerilogConfiguration;
 using Axion.API.Validation;
 using Serilog;
+using Serilog.Context;
 using Serilog.Events;
 
 namespace Axion.API;
@@ -33,6 +34,10 @@ public abstract class Program
                 .MinimumLevel.Information()
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
                 .WriteTo.Console(formatter: new ConsoleFormatter()));
+            
+            // Adding ProcessId for initialization logs
+            var processId = Guid.NewGuid().ToString("N")[..8];
+            LogContext.PushProperty("ProcessId", processId);
 
             // Config
             builder.Configuration.AddJsonFile("api_routes.json", optional: false, reloadOnChange: true);
@@ -67,6 +72,7 @@ public abstract class Program
             // Middleware pipeline
             app.UseMiddleware<ProcessIdMiddleware>(); // Should be always first in the pipeline
             app.UseMiddleware<GlobalExceptionMiddleware>();
+            app.UseMiddleware<BodyReadingMiddleware>(); // Read body once and cache it for better performance
             app.UseMiddleware<RequestLoggingMiddleware>();
             app.UseMiddleware<AuthMiddleware>();
             app.UseMiddleware<ValidationMiddleware>();

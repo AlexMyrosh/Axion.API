@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 
 namespace Axion.API.Middleware;
@@ -7,15 +6,7 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
 {
     public async Task InvokeAsync(HttpContext context)
     {
-        // Read body request
-        context.Request.EnableBuffering();
-        var requestBody = "";
-        if (context.Request.ContentLength > 0 && context.Request.ContentType?.Contains("application/json") == true)
-        {
-            using var reader = new StreamReader(context.Request.Body, leaveOpen: true);
-            requestBody = await reader.ReadToEndAsync();
-            context.Request.Body.Position = 0;
-        }
+        var requestBody = BodyReadingMiddleware.GetRawBody(context) ?? string.Empty;
 
         var bodyFormatted = FilterSensitiveData(requestBody);
         logger.LogInformation($"REQUEST {context.Request.Method} {context.Request.Path} Body: {(string.IsNullOrEmpty(bodyFormatted) ? "EMPTY" : bodyFormatted)}");
