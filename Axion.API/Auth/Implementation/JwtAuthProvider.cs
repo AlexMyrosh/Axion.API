@@ -19,7 +19,7 @@ public class JwtAuthProvider(IConfiguration config, ILogger<JwtAuthProvider> log
         var publicKey = config["Jwt:PublicKey"];
         if (string.IsNullOrEmpty(publicKey))
         {
-            logger.LogError("JWT PublicKey is not found");
+            logger.LogError("JWT PublicKey is not found in configuration");
             return false;
         }
 
@@ -29,17 +29,45 @@ public class JwtAuthProvider(IConfiguration config, ILogger<JwtAuthProvider> log
             rsa.ImportFromPem(publicKey);
             var rsaSecurityKey = new RsaSecurityKey(rsa);
             
-            var tokenHandler = new JwtSecurityTokenHandler();
+            // Read validation settings from configuration (with defaults)
+            var validateIssuer = config.GetValue("Jwt:ValidateIssuer", true);
+            var validateAudience = config.GetValue("Jwt:ValidateAudience", true);
+            var validateLifetime = config.GetValue("Jwt:ValidateLifetime", true);
+            var requireExpirationTime = config.GetValue("Jwt:RequireExpirationTime", true);
+            var clockSkewSeconds = config.GetValue("Jwt:ClockSkewSeconds", 60);
+            
             var validationParams = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = rsaSecurityKey,
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = false,
-                ClockSkew = TimeSpan.FromMinutes(1)
+                
+                ValidateIssuer = validateIssuer,
+                ValidIssuer = validateIssuer ? config["Jwt:Issuer"] : null,
+                
+                ValidateAudience = validateAudience,
+                ValidAudience = validateAudience ? config["Jwt:Audience"] : null,
+                
+                ValidateLifetime = validateLifetime,
+                RequireExpirationTime = requireExpirationTime,
+                
+                ClockSkew = TimeSpan.FromSeconds(clockSkewSeconds)
             };
             
+            // Validate Issuer configuration if enabled
+            if (validateIssuer && string.IsNullOrEmpty(validationParams.ValidIssuer))
+            {
+                logger.LogError("JWT Issuer validation is enabled but 'Jwt:Issuer' is not configured");
+                return false;
+            }
+            
+            // Validate Audience configuration if enabled
+            if (validateAudience && string.IsNullOrEmpty(validationParams.ValidAudience))
+            {
+                logger.LogError("JWT Audience validation is enabled but 'Jwt:Audience' is not configured");
+                return false;
+            }
+            
+            var tokenHandler = new JwtSecurityTokenHandler();
             tokenHandler.ValidateToken(token, validationParams, out var validatedToken);
             if (validatedToken is not JwtSecurityToken jwtToken)
             {
@@ -82,14 +110,39 @@ public class JwtAuthProvider(IConfiguration config, ILogger<JwtAuthProvider> log
             logger.LogWarning(ex, "JWT token has invalid signature");
             return false;
         }
+        catch (SecurityTokenInvalidIssuerException ex)
+        {
+            logger.LogWarning(ex, "JWT token has invalid issuer");
+            return false;
+        }
+        catch (SecurityTokenInvalidAudienceException ex)
+        {
+            logger.LogWarning(ex, "JWT token has invalid audience");
+            return false;
+        }
+        catch (SecurityTokenNoExpirationException ex)
+        {
+            logger.LogWarning(ex, "JWT token does not have expiration time");
+            return false;
+        }
+        catch (SecurityTokenNotYetValidException ex)
+        {
+            logger.LogWarning(ex, "JWT token is not yet valid");
+            return false;
+        }
         catch (CryptographicException ex)
         {
             logger.LogError(ex, "Failed to parse public key");
             return false;
         }
+        catch (SecurityTokenException ex)
+        {
+            logger.LogWarning(ex, "JWT token validation failed: {Message}", ex.Message);
+            return false;
+        }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "JWT token validation failed");
+            logger.LogError(ex, "Unexpected error during JWT token validation");
             return false;
         }
     }
