@@ -38,6 +38,17 @@
           { "Name": "email", "Type": "string", "Required": true }
         ]
       }
+    },
+    {
+      "Path": "/api/check-merchant",
+      "Method": "POST",
+      "Auth": "none",
+      "Handler": "Axion.API.Handlers.Implementation.CheckMerchantHandler, Axion.API",
+      "RequestSchema": {
+        "Fields": [
+          { "Name": "merchant_name", "Type": "string", "Required": true }
+        ]
+      }
     }
   ]
 }

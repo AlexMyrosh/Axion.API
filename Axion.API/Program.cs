@@ -8,6 +8,8 @@ using Axion.API.DbRepositories.Abstraction;
 using Axion.API.DbRepositories.Implementation;
 using Axion.API.HealthCheckers.Abstraction;
 using Axion.API.HealthCheckers.Implementation;
+using Axion.API.HttpClient.Abstraction;
+using Axion.API.HttpClient.Implementation;
 using Axion.API.Middleware;
 using Axion.API.Registry;
 using Axion.API.SerilogConfiguration;
@@ -53,9 +55,14 @@ public abstract class Program
             // Auth providers
             builder.Services.AddSingleton<IJwtAuthProvider, JwtAuthProvider>();
             builder.Services.AddSingleton<IStaticTokenAuthProvider, StaticTokenAuthProvider>();
+            builder.Services.AddSingleton<JwtTokenGenerator>();
             
             // PostgreSQL service
             builder.Services.AddSingleton<IPostgresRepository, PostgresRepository>();
+            
+            // HTTP Client
+            builder.Services.AddHttpClient();
+            builder.Services.AddSingleton<IHttpClientWrapper, HttpClientWrapper>();
             
             // Health checks
             builder.Services.AddSingleton<IPostgresHealthCheck, PostgresHealthCheck>();
