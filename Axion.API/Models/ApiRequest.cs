@@ -13,4 +13,6 @@ public class ApiRequest
     public JsonElement? Body { get; set; }
 
     public IDictionary<string, string?> Query { get; set; } = new Dictionary<string, string?>();
+    
+    public JsonElement? Parsed { get; set; }
 }

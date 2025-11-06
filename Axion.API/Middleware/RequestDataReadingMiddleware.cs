@@ -2,13 +2,26 @@ using System.Text.Json;
 
 namespace Axion.API.Middleware;
 
-public class BodyReadingMiddleware(RequestDelegate next, ILogger<BodyReadingMiddleware> logger)
+public class RequestDataReadingMiddleware(RequestDelegate next, ILogger<RequestDataReadingMiddleware> logger)
 {
     private const string ParsedBodyJsonElementKey = "ParsedBodyJsonElement";
     private const string RawBodyStringKey = "RawBodyString";
+    private const string ParsedRequestDataJsonElementKey = "ParsedRequestDataJsonElement";
 
     public async Task InvokeAsync(HttpContext context)
     {
+        var combinedData = new Dictionary<string, object?>();
+        
+        // Process Query parameters
+        if (context.Request.Query.Count != 0)
+        {
+            foreach (var (key, value) in context.Request.Query)
+            {
+                combinedData[key] = value.ToString();
+            }
+        }
+        
+        // Process Body
         if (context.Request.ContentLength > 0 && context.Request.ContentType?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true)
         {
             try
@@ -26,6 +39,12 @@ public class BodyReadingMiddleware(RequestDelegate next, ILogger<BodyReadingMidd
                         var jsonElement = jsonDoc.RootElement.Clone();
                         context.Items[ParsedBodyJsonElementKey] = jsonElement;
                         
+                        // Add Body properties to combinedData (Body overwrites Query if same key)
+                        foreach (var property in jsonElement.EnumerateObject())
+                        {
+                            combinedData[property.Name] = property.Value;
+                        }
+                        
                         logger.LogDebug("Request body parsed and cached. Size: {Size} bytes", bodyString.Length);
                     }
                     catch (JsonException ex)
@@ -37,6 +56,24 @@ public class BodyReadingMiddleware(RequestDelegate next, ILogger<BodyReadingMidd
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error reading request body");
+            }
+        }
+        
+        // Create combined JsonElement from dictionary
+        if (combinedData.Count > 0)
+        {
+            try
+            {
+                var jsonString = JsonSerializer.Serialize(combinedData);
+                var combinedDoc = JsonDocument.Parse(jsonString);
+                var combinedElement = combinedDoc.RootElement.Clone();
+                context.Items[ParsedRequestDataJsonElementKey] = combinedElement;
+                
+                logger.LogDebug("Combined request data (Query + Body) parsed and cached. Total keys: {Count}", combinedData.Count);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating combined request data");
             }
         }
 
@@ -58,6 +95,16 @@ public class BodyReadingMiddleware(RequestDelegate next, ILogger<BodyReadingMidd
         if (context.Items.TryGetValue(RawBodyStringKey, out var value) && value is string bodyString)
         {
             return bodyString;
+        }
+        
+        return null;
+    }
+    
+    public static JsonElement? GetParsedRequestData(HttpContext context)
+    {
+        if (context.Items.TryGetValue(ParsedRequestDataJsonElementKey, out var value) && value is JsonElement jsonElement)
+        {
+            return jsonElement;
         }
         
         return null;

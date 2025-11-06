@@ -6,7 +6,7 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
 {
     public async Task InvokeAsync(HttpContext context)
     {
-        var requestBody = BodyReadingMiddleware.GetRawBody(context) ?? string.Empty;
+        var requestBody = RequestDataReadingMiddleware.GetRawBody(context) ?? string.Empty;
 
         var bodyFormatted = FilterSensitiveData(requestBody);
         logger.LogInformation($"REQUEST {context.Request.Method} {context.Request.Path} Body: {(string.IsNullOrEmpty(bodyFormatted) ? "EMPTY" : bodyFormatted)}");

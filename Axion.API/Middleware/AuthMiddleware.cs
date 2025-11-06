@@ -49,7 +49,7 @@ public class AuthMiddleware(RequestDelegate next)
                     }
                     
                     // Get cached body from BodyReadingMiddleware
-                    var requestBody = BodyReadingMiddleware.GetJsonBody(context);
+                    var requestBody = RequestDataReadingMiddleware.GetJsonBody(context);
                     
                     var jwtProvider = services.GetRequiredService<IJwtAuthProvider>();
                     if (!jwtProvider.Validate(jwtToken, requestBody))

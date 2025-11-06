@@ -11,6 +11,7 @@ using Axion.API.HealthCheckers.Implementation;
 using Axion.API.Middleware;
 using Axion.API.Registry;
 using Axion.API.SerilogConfiguration;
+using Axion.API.Utilities;
 using Axion.API.Validation;
 using Serilog;
 using Serilog.Context;
@@ -36,7 +37,7 @@ public abstract class Program
                 .WriteTo.Console(formatter: new ConsoleFormatter()));
             
             // Adding ProcessId for initialization logs
-            var processId = Guid.NewGuid().ToString("N")[..8];
+            var processId = ProcessIdGenerator.Generate();
             LogContext.PushProperty("ProcessId", processId);
 
             // Config
@@ -72,7 +73,7 @@ public abstract class Program
             // Middleware pipeline
             app.UseMiddleware<ProcessIdMiddleware>(); // Should be always first in the pipeline
             app.UseMiddleware<GlobalExceptionMiddleware>();
-            app.UseMiddleware<BodyReadingMiddleware>(); // Read body once and cache it for better performance
+            app.UseMiddleware<RequestDataReadingMiddleware>(); // Read body once and cache it for better performance
             app.UseMiddleware<RequestLoggingMiddleware>();
             app.UseMiddleware<AuthMiddleware>();
             app.UseMiddleware<ValidationMiddleware>();

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Axion.API.Config.Abstraction;
 using Axion.API.DbRepositories.Abstraction;
 using Npgsql;
@@ -135,6 +136,9 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
             return null;
         }
 
+        logger.LogInformation("Executing query '{Query}' on pool '{Pool}'", queryName, resolvedPoolName);
+        var stopwatch = Stopwatch.StartNew();
+
         try
         {
             await using var connection = await dataSource.OpenConnectionAsync();
@@ -162,10 +166,14 @@ public class PostgresRepository(IConfiguration configuration, ILogger<PostgresRe
                 rows.Add(row);
             }
             
+            stopwatch.Stop();
+            logger.LogInformation("Query '{Query}' executed successfully on pool {Pool} in {ElapsedMs}ms", queryName, resolvedPoolName, stopwatch.ElapsedMilliseconds);
+            
             return rows;
         }
         catch (Exception ex)
         {
+            stopwatch.Stop();
             logger.LogError(ex, "Error executing query {Query} on pool {Pool}", queryName, resolvedPoolName);
             return null;
         }

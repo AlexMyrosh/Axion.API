@@ -30,13 +30,13 @@ public class ValidationMiddleware(RequestDelegate next)
             return;
         }
         
-        var body = BodyReadingMiddleware.GetJsonBody(context);
+        var body = RequestDataReadingMiddleware.GetJsonBody(context);
         
         // Check if body was expected but failed to parse
         if (context.Request.ContentLength > 0 && 
             context.Request.ContentType?.Contains("application/json") == true && 
             body == null &&
-            BodyReadingMiddleware.GetRawBody(context) != null)
+            RequestDataReadingMiddleware.GetRawBody(context) != null)
         {
             logger.LogWarning("Invalid JSON in request body");
             context.Response.StatusCode = StatusCodes.Status400BadRequest;

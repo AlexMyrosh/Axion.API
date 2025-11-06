@@ -43,10 +43,16 @@ public class DynamicController(HandlerRegistry registry, IServiceProvider servic
             request.Query[q.Key] = q.Value.ToString();
         }
         
-        var body = BodyReadingMiddleware.GetJsonBody(HttpContext);
+        var body = RequestDataReadingMiddleware.GetJsonBody(HttpContext);
         if (body != null)
         {
             request.Body = body;
+        }
+        
+        var parsed = RequestDataReadingMiddleware.GetParsedRequestData(HttpContext);
+        if (parsed != null)
+        {
+            request.Parsed = parsed;
         }
 
         var handler = (IApiHandler?)services.GetService(handlerType) ?? ActivatorUtilities.CreateInstance(services, handlerType) as IApiHandler;

@@ -1,6 +1,7 @@
 using Axion.API.DbRepositories.Abstraction;
 using Axion.API.Handlers.Abstraction;
 using Axion.API.Models;
+using Axion.API.Utilities;
 
 namespace Axion.API.Handlers.Implementation;
 
@@ -10,18 +11,11 @@ public class CreateMerchantHandler(IPostgresRepository postgresRepository, ILogg
     {
         try
         {
-            var name = string.Empty;
-            var email = string.Empty;
-            if (request.Body.HasValue)
+            var name = RequestDataExtractor.GetValue("name", request.Parsed);
+            var email = RequestDataExtractor.GetValue("email", request.Parsed);
+            if (name is null || email is null)
             {
-                if (request.Body.Value.TryGetProperty("name", out var nameProp))
-                {
-                    name = nameProp.GetString() ?? string.Empty;
-                }
-                if (request.Body.Value.TryGetProperty("email", out var emailProp))
-                {
-                    email = emailProp.GetString() ?? string.Empty;
-                }
+                return ApiResponse.Error("500", "Create merchant failed");
             }
             
             var parameters = new Dictionary<string, object> 
