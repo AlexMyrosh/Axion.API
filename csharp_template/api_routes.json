@@ -1,0 +1,54 @@
+{
+  "ApiRoutes": [
+    {
+      "Path": "/api/users",
+      "Method": "GET",
+      "Auth": "none",
+      "Handler": "csharp_template.Handlers.Implementation.GetUsersHandler, csharp_template",
+      "RequestSchema": { "Fields": [] }
+    },
+    {
+      "Path": "/api/users",
+      "Method": "POST",
+      "Auth": "none",
+      "Handler": "csharp_template.Handlers.Implementation.CreateUserHandler, csharp_template",
+      "RequestSchema": {
+        "Fields": [
+          { "Name": "username", "Type": "string", "Required": true },
+          { "Name": "email", "Type": "string", "Required": true },
+          { "Name": "status", "Type": "string", "Required": false }
+        ]
+      }
+    },
+    {
+      "Path": "/api/merchants",
+      "Method": "GET",
+      "Auth": "none",
+      "Handler": "csharp_template.Handlers.Implementation.GetMerchantsHandler, csharp_template",
+      "RequestSchema": { "Fields": [] }
+    },
+    {
+      "Path": "/api/merchants",
+      "Method": "POST",
+      "Auth": "none",
+      "Handler": "csharp_template.Handlers.Implementation.CreateMerchantHandler, csharp_template",
+      "RequestSchema": {
+        "Fields": [
+          { "Name": "name", "Type": "string", "Required": true },
+          { "Name": "email", "Type": "string", "Required": true }
+        ]
+      }
+    },
+    {
+      "Path": "/api/check-merchant",
+      "Method": "POST",
+      "Auth": "none",
+      "Handler": "csharp_template.Handlers.Implementation.CheckMerchantHandler, csharp_template",
+      "RequestSchema": {
+        "Fields": [
+          { "Name": "merchant_name", "Type": "string", "Required": true }
+        ]
+      }
+    }
+  ]
+}
